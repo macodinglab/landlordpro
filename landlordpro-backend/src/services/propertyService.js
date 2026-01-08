@@ -318,29 +318,22 @@ async function updateProperty(id, data, user) {
 }
 
 // ================================
-// ✅ Soft Delete Property
+// ✅ Soft Delete Property (Admin Only)
 // ================================
 async function deleteProperty(id, user) {
-  const whereClause = { id, deleted_at: null };
-  
-  // ✅ Managers can only delete their assigned properties
-  if (user.role === 'manager') {
-    whereClause.manager_id = user.id;
+  // Only admins can delete properties
+  if (user.role !== 'admin') {
+    throw createError('Only admins can delete properties.', 403);
   }
 
-  const property = await Property.findOne({ where: whereClause });
-  
+  const property = await Property.findOne({ where: { id, deleted_at: null } });
+
   if (!property) {
-    throw createError(
-      user.role === 'manager'
-        ? 'Property not found or you do not have access to this property.'
-        : 'Property not found.',
-      404
-    );
+    throw createError('Property not found.', 404);
   }
 
   await property.update({ deleted_at: new Date() });
-  
+
   return {
     success: true,
     message: 'Property deleted successfully (soft delete).'

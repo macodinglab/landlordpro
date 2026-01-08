@@ -8,7 +8,23 @@ import {
 } from '../../services/floorService';
 import { getPropertyById } from '../../services/propertyService';
 import { Button, Modal, Input, Card } from '../../components';
-import { FiEdit, FiTrash, FiArrowLeft, FiLayers, FiHome, FiSearch, FiTrendingUp, FiUsers } from 'react-icons/fi';
+import {
+  Edit3,
+  Trash2,
+  ArrowLeft,
+  Layers,
+  Home,
+  Search,
+  Activity,
+  Box,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle,
+  Clock,
+  ArrowRight,
+  Zap,
+  Building
+} from 'lucide-react';
 import { showSuccess, showError, showInfo } from '../../utils/toastHelper';
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -21,15 +37,15 @@ const normaliseFloors = (floors = [], propertyMeta = {}) => {
 
     const filteredLocals = Array.isArray(rawLocals)
       ? rawLocals.filter((local) => {
-          if (!local) return false;
-          if (targetPropertyId && local.property_id) {
-            return String(local.property_id) === String(targetPropertyId);
-          }
-          if (floor.id && local.floor_id) {
-            return String(local.floor_id) === String(floor.id);
-          }
-          return true;
-        })
+        if (!local) return false;
+        if (targetPropertyId && local.property_id) {
+          return String(local.property_id) === String(targetPropertyId);
+        }
+        if (floor.id && local.floor_id) {
+          return String(local.floor_id) === String(floor.id);
+        }
+        return true;
+      })
       : [];
 
     const localsCount = floor.locals_count !== undefined
@@ -51,7 +67,7 @@ const normaliseFloors = (floors = [], propertyMeta = {}) => {
 const PropertyFloorsPage = () => {
   const { propertyId } = useParams();
   const navigate = useNavigate();
-  
+
   const [floors, setFloors] = useState([]);
   const [propertyInfo, setPropertyInfo] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -70,18 +86,17 @@ const PropertyFloorsPage = () => {
       try {
         propertyDetails = await getPropertyById(propertyId);
         if (propertyDetails) {
-          setPropertyInfo((prev) => ({
+          setPropertyInfo({
             id: propertyDetails.id,
             name: propertyDetails.name,
             location: propertyDetails.location,
-          }));
+          });
         }
       } catch (innerError) {
         console.warn('getPropertyById fallback:', innerError?.message || innerError);
       }
 
       const response = await getFloorsByPropertyId(propertyId);
-      
 
       let floorsData = extractFloorsData(response);
       if ((!floorsData || floorsData.length === 0) && propertyDetails?.floorsForProperty) {
@@ -89,8 +104,8 @@ const PropertyFloorsPage = () => {
       }
 
       const normalisedFloors = normaliseFloors(floorsData, {
-        id: propertyDetails?.id || response?.property?.id || propertyInfo?.id || propertyId,
-        name: propertyDetails?.name || response?.property?.name || propertyInfo?.name,
+        id: propertyDetails?.id || response?.property?.id || propertyId,
+        name: propertyDetails?.name || response?.property?.name || 'Property Floors',
       });
       setFloors(normalisedFloors);
 
@@ -110,7 +125,7 @@ const PropertyFloorsPage = () => {
     }
   };
 
-  useEffect(() => { 
+  useEffect(() => {
     if (propertyId) {
       fetchPropertyFloors();
     }
@@ -143,40 +158,10 @@ const PropertyFloorsPage = () => {
     return { totalLocals, occupied, available, maintenance, occupancyRate };
   }, [floors, occupancyReports]);
 
-  const statCards = useMemo(
-    () => [
-      {
-        title: 'Floors',
-        value: floors.length,
-        hint: 'Registered levels',
-        icon: <FiLayers className="w-5 h-5" />,
-      },
-      {
-        title: 'Locals',
-        value: stats.totalLocals,
-        hint: 'Total commercial units',
-        icon: <FiUsers className="w-5 h-5" />,
-      },
-      {
-        title: 'Occupied',
-        value: stats.occupied,
-        hint: 'Currently leased units',
-        icon: <FiTrendingUp className="w-5 h-5" />,
-      },
-      {
-        title: 'Availability',
-        value: `${stats.occupancyRate}%`,
-        hint: 'Portfolio occupancy rate',
-        icon: <FiHome className="w-5 h-5" />,
-      },
-    ],
-    [floors.length, stats]
-  );
-
   const handleEditClick = (floor) => {
     setSelectedFloor(floor);
-    setEditData({ 
-      name: floor.name, 
+    setEditData({
+      name: floor.name,
       level_number: floor.level_number
     });
     setModalOpen(true);
@@ -228,252 +213,303 @@ const PropertyFloorsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-12 px-3 sm:px-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-gray-500">Loading floors...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-6 animate-pulse">
+          <Zap size={48} className="text-teal-500" />
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Syncing Asset Architecture...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pt-12 pb-12 px-3 sm:px-6 bg-slate-50">
-      <div className="bg-linear-to-br from-slate-900 via-blue-900 to-slate-800 text-white rounded-2xl shadow-xl p-6 md:p-8 mb-8">
-        <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-3 max-w-2xl">
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={handleBackToProperties}
-                className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg flex items-center gap-2 backdrop-blur"
-              >
-                <FiArrowLeft /> Back to Properties
-              </Button>
-            </div>
-            <div>
-              <p className="text-sm uppercase tracking-widest text-white/70">Portfolio • Floors overview</p>
-              <h1 className="text-3xl md:text-4xl font-semibold mt-1 flex items-center gap-3">
-                <FiHome className="text-white/70" />
-                {propertyInfo?.name || 'Property Floors'}
-              </h1>
-              {propertyInfo?.location && (
-                <p className="text-white/80 text-sm mt-2">{propertyInfo.location}</p>
-              )}
+    <div className="space-y-8">
+      <div className="max-w-[1600px] mx-auto space-y-8">
+
+        {/* Breadcrumbs & Navigation */}
+        <div className="flex items-center gap-6 animate-fade-in group">
+          <button
+            onClick={handleBackToProperties}
+            className="p-4 rounded-2xl bg-gray-800/40 backdrop-blur-sm shadow-xl text-gray-400 hover:text-teal-400 transition-all hover:scale-110 border border-gray-700/50"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div className="h-10 w-px bg-gray-700 hidden sm:block"></div>
+          <div className="hidden sm:block">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 italic">Asset Path</p>
+            <div className="flex items-center gap-3 text-xs font-black text-gray-400 uppercase italic">
+              <span className="hover:text-teal-500 cursor-pointer transition-colors" onClick={() => navigate('/admin')}>Portfolio</span>
+              <span className="text-gray-600">/</span>
+              <span className="hover:text-teal-500 cursor-pointer transition-colors" onClick={handleBackToProperties}>Properties</span>
+              <span className="text-gray-600">/</span>
+              <span className="text-teal-500">{propertyInfo?.name || 'Asset Matrix'}</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 min-w-[220px] md:min-w-[260px]">
-            {statCards.map((card) => (
-              <div
-                key={card.title}
-                className="bg-white/10 backdrop-blur rounded-xl px-4 py-3 border border-white/20 flex flex-col gap-2"
-              >
-                <div className="flex items-center justify-between text-sm text-white/70">
-                  <span>{card.title}</span>
-                  {card.icon}
+        </div>
+
+        {/* Hero Section */}
+        <Card className="p-6 md:p-10 bg-gray-800/40 backdrop-blur-sm border-gray-700/50 overflow-hidden relative" hover={false}>
+          <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+            <Home size={200} className="text-teal-500" />
+          </div>
+
+          <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20 text-[10px] font-black uppercase tracking-widest italic animate-pulse">
+                <Activity size={12} /> Vertical Architecture Oversight
+              </div>
+              <div className="max-w-full overflow-hidden">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white uppercase italic tracking-tighter leading-none truncate pr-4">
+                  {propertyInfo?.name || 'Asset Matrix'}
+                </h1>
+                <p className="text-gray-400 text-[11px] font-black uppercase tracking-[0.3em] italic mt-4 flex items-center gap-2 truncate">
+                  <Building size={14} className="text-teal-500 shrink-0" /> <span className="truncate">{propertyInfo?.location || 'Sector Unknown'}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-8 shrink-0">
+              <div className="text-right">
+                <p className="text-[10px] font-black text-gray-500 uppercase italic tracking-widest mb-1">Architecture Depth</p>
+                <p className="text-3xl font-black text-white italic tracking-tighter leading-none">{floors.length} Levels</p>
+              </div>
+              <div className="h-12 w-px bg-gray-700 hidden sm:block"></div>
+              <div className="text-right hidden sm:block">
+                <p className="text-[10px] font-black text-gray-500 uppercase italic tracking-widest mb-1">Total Unit Clusters</p>
+                <p className="text-3xl font-black text-teal-400 italic tracking-tighter leading-none">{stats.totalLocals}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-12 pt-10 border-t border-gray-700/50">
+            {[
+              { label: 'Active Tenancy', value: `${stats.occupancyRate}%`, icon: Activity, color: 'teal' },
+              { label: 'Operational Nodes', value: stats.occupied, icon: CheckCircle, color: 'emerald' },
+              { label: 'Liquid Reserves', value: stats.available, icon: Box, color: 'indigo' },
+              { label: 'Fault Isolation', value: stats.maintenance, icon: Clock, color: 'amber' }
+            ].map((stat, idx) => (
+              <div key={idx} className="space-y-1 group min-w-0">
+                <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest italic group-hover:text-teal-500 transition-colors truncate">{stat.label}</p>
+                <div className="flex items-center gap-2">
+                  <stat.icon size={14} className={`text-${stat.color}-400 shrink-0`} />
+                  <p className="text-xl md:text-2xl font-black text-white italic tracking-tighter truncate">{stat.value}</p>
                 </div>
-                <span className="text-2xl font-semibold">{card.value}</span>
-                <span className="text-xs text-white/60">{card.hint}</span>
               </div>
             ))}
           </div>
-        </div>
-      </div>
+        </Card>
 
-      <Card className="p-5 border border-slate-200 shadow-sm mb-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="relative w-full md:max-w-sm">
-            <FiSearch className="absolute left-3 top-3 text-slate-400" />
-            <Input
-              placeholder="Quick search by floor name or level..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPage(1);
-              }}
-              className="pl-10 bg-white"
-            />
+        {/* Filters */}
+        <div className="relative group animate-fade-in">
+          <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+            <Search size={18} className="text-gray-500 group-focus-within:text-teal-500 transition-colors" />
           </div>
-          <div className="text-sm text-slate-500">
-            Showing <span className="font-medium text-slate-700">{filteredFloors.length}</span> of{' '}
-            <span className="font-medium text-slate-700">{floors.length}</span> floors for this property.
-          </div>
+          <input
+            type="text"
+            placeholder="Query floors within this asset by identity or altitude..."
+            className="w-full pl-16 pr-6 py-5 bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-[1.5rem] text-white font-bold italic placeholder-gray-500 outline-hidden transition-all shadow-inner focus:border-teal-500/30 focus:shadow-[0_0_20px_rgba(20,184,166,0.1)]"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(1);
+            }}
+          />
         </div>
-      </Card>
 
-      <div className="space-y-6">
-        {floors.length === 0 ? (
-          <Card className="bg-white rounded-2xl shadow-sm border border-slate-200 p-10 text-center">
-            <FiLayers className="text-5xl text-slate-300 mx-auto mb-5" />
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">No Floors Found</h3>
-            <p className="text-slate-500 max-w-md mx-auto">
-              This property does not have any floors yet. Floors are generated automatically when the property setup includes floor information.
-            </p>
-          </Card>
-        ) : (
-          <Card className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm text-slate-700">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wide">
+        {/* Content Table */}
+        <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/50 overflow-hidden" hover={false}>
+          {/* Mobile Card Feed */}
+          <div className="md:hidden divide-y divide-gray-700/30">
+            {paginatedFloors.length === 0 ? (
+              <div className="p-20 text-center italic text-gray-400 font-black uppercase tracking-widest text-[10px]">No vertical records isolated.</div>
+            ) : (
+              paginatedFloors.map((floor) => {
+                const report = occupancyReports[floor.id] || {};
+                const rate = report.occupancy_rate || 0;
+                return (
+                  <div key={floor.id} className="p-6 space-y-6 hover:bg-gray-700/20 transition-all group/row">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-teal-500/10 text-teal-400 flex items-center justify-center border border-teal-500/20 group-hover:scale-110 transition-transform shadow-lg">
+                          <Layers size={24} />
+                        </div>
+                        <div>
+                          <h3 className="font-black text-white italic uppercase tracking-tighter text-lg">{floor.name}</h3>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic mt-1">
+                            Altitude P{floor.level_number}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2 text-right">
+                        <span className="text-[10px] font-black text-white italic">{rate}% Occupancy</span>
+                        <div className="w-16 h-1 bg-gray-900 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-1000 ${rate >= 70 ? 'bg-emerald-500' : rate >= 40 ? 'bg-teal-500' : 'bg-rose-500'}`}
+                            style={{ width: `${rate}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-700/30">
+                      <div className="flex gap-4">
+                        <div className="flex flex-col">
+                          <p className="text-[9px] font-black text-gray-500 uppercase italic">Operational Load</p>
+                          <p className="text-sm font-black text-gray-300 italic">{report.occupied || 0} USE / {report.available || 0} LIQ</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={() => handleViewLocals(floor)} className="p-2 rounded-xl text-[9px] font-black">
+                          INSPECT
+                        </Button>
+                        <Button variant="outline" className="p-2 rounded-xl border-gray-700 text-gray-400 hover:text-teal-400" onClick={() => handleEditClick(floor)}>
+                          <Edit3 size={14} />
+                        </Button>
+                        <Button variant="outline" className="p-2 rounded-xl border-gray-700 text-gray-400 hover:text-rose-400" onClick={() => handleDelete(floor)}>
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <div className="hidden md:block overflow-x-auto scrollbar-thin scrollbar-thumb-teal-500/20 scrollbar-track-transparent">
+            <table className="w-full text-left table-auto min-w-[800px]">
+              <thead className="bg-gray-900/50 text-[10px] font-black text-gray-500 uppercase tracking-widest italic border-b border-gray-700/50">
+                <tr>
+                  <th className="px-6 py-6 font-black uppercase">Floor Identity</th>
+                  <th className="px-6 py-6 font-black uppercase">Altitude</th>
+                  <th className="px-6 py-6 text-center font-black uppercase">Operational Load</th>
+                  <th className="px-6 py-6 text-center font-black uppercase">Capacity visual</th>
+                  <th className="px-6 py-6 text-right font-black uppercase">Console</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700/30">
+                {paginatedFloors.length === 0 ? (
                   <tr>
-                    <th className="p-4 text-left">Floor</th>
-                    <th className="p-4 text-left">Level</th>
-                    <th className="p-4 text-left">Locals</th>
-                    <th className="p-4 text-left">Occupied</th>
-                    <th className="p-4 text-left">Available</th>
-                    <th className="p-4 text-left">Maintenance</th>
-                    <th className="p-4 text-left">Occupancy</th>
-                    <th className="p-4 text-center">Actions</th>
+                    <td colSpan={5} className="px-6 py-32 text-center italic text-gray-400 font-black uppercase tracking-widest text-[10px]">No vertical records isolated.</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {paginatedFloors.map((floor) => {
+                ) : (
+                  paginatedFloors.map((floor) => {
                     const report = occupancyReports[floor.id] || {};
-                    const occupancyClass = report.occupancy_rate >= 70
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : report.occupancy_rate >= 40
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-rose-100 text-rose-700';
-
+                    const rate = report.occupancy_rate || 0;
                     return (
-                      <tr key={floor.id} className="border-b border-slate-200/80 last:border-none hover:bg-slate-50 transition-colors">
-                        <td className="p-4 font-medium text-slate-900 flex items-center gap-2">
-                          <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-slate-100 text-slate-600">
-                            <FiLayers />
-                          </span>
-                          {floor.name}
-                        </td>
-                        <td className="p-4">
-                          <span className="px-2 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium">
-                            Level {floor.level_number}
-                          </span>
-                        </td>
-                        <td className="p-4 font-semibold text-slate-700">
-                          <div className="flex flex-wrap gap-2">
-                            {(floor.locals || []).slice(0, 6).map((local) => (
-                              <span
-                                key={local.id}
-                                className="px-2 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium"
-                              >
-                                {local.local_number || local.reference_code || `LOC-${String(local.id).slice(0, 6)}`}
-                              </span>
-                            ))}
-                            {floor.locals_count > 6 && (
-                              <span className="px-2 py-1 rounded-lg bg-slate-200 text-slate-700 text-xs font-medium">
-                                +{floor.locals_count - 6}
-                              </span>
-                            )}
-                            {(!floor.locals || floor.locals.length === 0) && (
-                              <span className="text-slate-400">0</span>
-                            )}
+                      <tr key={floor.id} className="group hover:bg-gray-700/20 transition-all duration-300">
+                        <td className="px-6 py-6">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center border border-teal-500/20 group-hover:scale-110 transition-transform shadow-lg shrink-0">
+                              <Layers size={18} />
+                            </div>
+                            <span className="text-lg font-black text-white italic uppercase tracking-tighter leading-none truncate max-w-[150px]">{floor.name}</span>
                           </div>
                         </td>
-                        <td className="p-4">
-                          <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium">
-                            {report.occupied || 0}
+                        <td className="px-6 py-6">
+                          <span className="px-3 py-1.5 bg-gray-900 border border-gray-700 rounded-lg text-[9px] font-black text-gray-400 uppercase tracking-widest italic whitespace-nowrap">
+                            Altitude P{floor.level_number}
                           </span>
                         </td>
-                        <td className="p-4">
-                          <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-medium">
-                            {report.available || 0}
-                          </span>
+                        <td className="px-6 py-6 text-center text-sm font-black text-gray-300 italic whitespace-nowrap">
+                          <div className="flex justify-center gap-3">
+                            <span className="text-emerald-500 font-black">{report.occupied || 0} USE</span>
+                            <span className="text-teal-500 font-black">{report.available || 0} LIQ</span>
+                          </div>
                         </td>
-                        <td className="p-4">
-                          <span className="px-2 py-1 rounded-lg bg-rose-50 text-rose-700 text-xs font-medium">
-                            {report.maintenance || 0}
-                          </span>
+                        <td className="px-6 py-6 text-center whitespace-nowrap">
+                          <div className="flex items-center gap-4 justify-center">
+                            <div className="w-24 h-1.5 bg-gray-900 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full transition-all duration-1000 ${rate >= 70 ? 'bg-emerald-500' : rate >= 40 ? 'bg-teal-500' : 'bg-rose-500'}`}
+                                style={{ width: `${rate}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] font-black text-white italic">{rate}%</span>
+                          </div>
                         </td>
-                        <td className="p-4">
-                          <span className={`px-2 py-1 rounded-lg text-xs font-medium ${occupancyClass}`}>
-                            {report.occupancy_rate ?? floor.occupancy_rate ?? 0}%
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex justify-center gap-2">
-                            <Button
-                              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center gap-1"
-                              onClick={() => handleViewLocals(floor)}
-                            >
-                              <FiLayers className="text-sm" /> Locals
+                        <td className="px-6 py-6 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
+                            <Button onClick={() => handleViewLocals(floor)} className="px-4 py-2 rounded-lg text-[9px] font-black">
+                              INSPECT <ArrowRight size={12} className="ml-2" />
                             </Button>
-                            <Button
-                              className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center gap-1"
-                              onClick={() => handleEditClick(floor)}
-                            >
-                              <FiEdit className="text-sm" /> Edit
+                            <Button variant="outline" className="p-2 rounded-lg border-gray-700 text-gray-400 hover:text-teal-400" onClick={() => handleEditClick(floor)}>
+                              <Edit3 size={14} />
                             </Button>
-                            <Button
-                              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center gap-1"
-                              onClick={() => handleDelete(floor)}
-                            >
-                              <FiTrash className="text-sm" /> Delete
+                            <Button variant="outline" className="p-2 rounded-lg border-gray-700 text-gray-400 hover:text-rose-400" onClick={() => handleDelete(floor)}>
+                              <Trash2 size={14} />
                             </Button>
                           </div>
                         </td>
                       </tr>
                     );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
 
-            {filteredFloors.length > limit && (
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-4 border-t border-slate-200 bg-slate-50 text-sm text-slate-500">
-                <div>
-                  Page <span className="font-medium text-slate-700">{page}</span> of{' '}
-                  <span className="font-medium text-slate-700">{totalPages}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                    disabled={page <= 1}
-                    className={`px-3 py-1 rounded-lg border text-xs font-medium transition ${
-                      page <= 1 ? 'text-slate-300 border-slate-200 cursor-not-allowed' : 'text-slate-700 border-slate-300 hover:bg-white'
-                    }`}
-                  >
-                    ← Prev
-                  </button>
-                  <button
-                    onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-                    disabled={page >= totalPages}
-                    className={`px-3 py-1 rounded-lg border text-xs font-medium transition ${
-                      page >= totalPages ? 'text-slate-300 border-slate-200 cursor-not-allowed' : 'text-slate-700 border-slate-300 hover:bg-white'
-                    }`}
-                  >
-                    Next →
-                  </button>
-                </div>
-              </div>
-            )}
-          </Card>
+        {/* Pagination */}
+        <div className="flex justify-between items-center py-6">
+          <div className="text-[10px] font-black text-gray-500 uppercase italic tracking-[0.2em]">
+            Index <span className="text-teal-400 font-black">{page}</span> // Matrix <span className="text-white font-black">{totalPages}</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+              disabled={page <= 1}
+              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${page <= 1
+                ? 'text-gray-700 cursor-not-allowed bg-gray-800/20'
+                : 'text-gray-400 hover:text-teal-400 hover:bg-gray-800'
+                }`}
+            >
+              Retreat
+            </button>
+            <button
+              onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={page >= totalPages}
+              className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${page >= totalPages
+                ? 'text-gray-700 cursor-not-allowed bg-gray-800/20'
+                : 'bg-teal-600 text-white shadow-xl hover:bg-teal-500 hover:scale-105 active:scale-95'
+                }`}
+            >
+              Advance
+            </button>
+          </div>
+        </div>
+
+        {/* Modal Module */}
+        {modalOpen && (
+          <Modal
+            title={selectedFloor ? `Override Architecture Sector: ${selectedFloor.name}` : 'Initialize New Level Dimension'}
+            onClose={() => {
+              setModalOpen(false);
+              setSelectedFloor(null);
+              setEditData({ name: '', level_number: 0 });
+            }}
+            onSubmit={handleSubmit}
+            className="max-w-xl"
+          >
+            <div className="p-4 space-y-10 animate-fade-in">
+              <Input
+                label="Designation Label signature *"
+                value={editData.name}
+                onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                placeholder="e.g. Level One, Premium Wing..."
+                icon={Layers}
+              />
+              <Input
+                label="Altitude Priority Vector (Level Index) *"
+                type="number"
+                value={editData.level_number}
+                onChange={(e) => setEditData({ ...editData, level_number: parseInt(e.target.value, 10) || 0 })}
+                icon={Activity}
+              />
+            </div>
+          </Modal>
         )}
       </div>
-
-      {modalOpen && (
-        <Modal
-          title="Edit Floor"
-          onClose={() => {
-            setModalOpen(false);
-            setSelectedFloor(null);
-            setEditData({ name: '', level_number: 0 });
-          }}
-          onSubmit={handleSubmit}
-        >
-          <div className="space-y-4">
-            <Input
-              label="Floor Name"
-              value={editData.name}
-              onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-              placeholder="Enter floor name"
-            />
-            <Input
-              label="Level Number"
-              type="number"
-              value={editData.level_number}
-              onChange={(e) => setEditData({ ...editData, level_number: parseInt(e.target.value, 10) || 0 })}
-              placeholder="Enter level number"
-            />
-          </div>
-        </Modal>
-      )}
     </div>
   );
 };

@@ -18,6 +18,7 @@ const adminLinks = [
   // { label: 'Invoices', path: '/admin/invoices' },
   { label: 'Payments', path: '/admin/payments' },
   { label: 'Expenses', path: '/admin/expenses' },
+  { label: 'Staff', path: '/admin/staff' },
   { label: 'Documents', path: '/admin/documents' },
   { label: 'Reports', path: '/admin/reports' },
   { label: 'Settings', path: '/admin/settings' },
@@ -28,7 +29,7 @@ const getTokenExpiry = (token) => {
   if (!token) return 0;
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.exp; 
+    return payload.exp;
   } catch (error) {
     console.error('Invalid token', error);
     return 0;
@@ -37,16 +38,30 @@ const getTokenExpiry = (token) => {
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    // ... existing auth logic
     const currentUser = getLoggedInUser();
     const token = getToken();
 
     if (!currentUser || !token) {
       logout();
       navigate('/');
+      return;
+    }
+
+    const role = String(currentUser.role || '').toLowerCase();
+    if (role !== 'admin') {
+      if (role === 'manager') {
+        navigate('/manager');
+      } else {
+        toast.error('Access denied. Admin privileges required.');
+        logout();
+        navigate('/');
+      }
       return;
     }
 
@@ -63,7 +78,6 @@ const AdminLayout = () => {
       return;
     }
 
-    // Auto-logout timer
     const timer = setTimeout(() => {
       toast.info('Your session has expired. Logging out...');
       logout();
@@ -81,22 +95,27 @@ const AdminLayout = () => {
   if (!user) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-800">
-        <div className="text-gray-600 dark:text-gray-300 text-lg">Loading...</div>
+        <div className="text-teal-600 dark:text-teal-400 text-lg animate-pulse">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-gray-950 dark:bg-gray-950">
       {/* Sidebar */}
       <Sidebar
         links={adminLinks}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
       />
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col lg:ml-64 transition-all duration-300">
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'lg:ml-24' : 'lg:ml-72'
+          }`}
+      >
         {/* Topbar */}
         <Topbar
           user={user}
@@ -105,7 +124,7 @@ const AdminLayout = () => {
         />
 
         {/* Page content */}
-        <main className="pt-16 p-4 sm:p-6 bg-gray-50 dark:bg-gray-800 flex-1 overflow-auto">
+        <main className="pt-20 px-4 md:px-8 lg:px-10 py-10 flex-1 overflow-auto relative custom-scrollbar bg-gray-950 dark:bg-gray-950">
           <Outlet />
         </main>
       </div>

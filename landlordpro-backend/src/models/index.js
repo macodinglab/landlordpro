@@ -9,6 +9,7 @@ const Payment = require('./Payment');
 const PaymentMode = require('./PaymentMode');
 const Document = require('./Document');
 const Expense = require('./Expense');
+const Staff = require('./Staff');
 
 // ==================== Associations ==================== //
 
@@ -77,4 +78,5 @@ module.exports = {
   PaymentMode,
   Document,
   Expense,
+  Staff,
 };

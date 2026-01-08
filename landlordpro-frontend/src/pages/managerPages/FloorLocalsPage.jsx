@@ -1,7 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Card, Button, Input, Badge } from '../../components';
-import { FiArrowLeft, FiLayers, FiHome, FiSearch } from 'react-icons/fi';
+import {
+  ArrowLeft,
+  Layers,
+  Home,
+  Search,
+  LayoutDashboard,
+  CheckCircle2,
+  ShieldCheck,
+  ShieldAlert,
+  LayoutTemplate,
+  History
+} from 'lucide-react';
 import useAccessibleProperties from '../../hooks/useAccessibleProperties';
 import { getLocalsByFloorId } from '../../services/localService';
 import { getFloorById, getFloorOccupancy } from '../../services/floorService';
@@ -30,6 +41,8 @@ const ManagerFloorLocalsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [propertyMeta, setPropertyMeta] = useState({ id: propertyId || null, name: propertyNameParam });
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
   const propertyAccessible = useMemo(() => {
     if (!propertyId) return true;
@@ -61,8 +74,8 @@ const ManagerFloorLocalsPage = () => {
         const localsData = Array.isArray(localsResponse?.data)
           ? localsResponse.data
           : Array.isArray(localsResponse)
-          ? localsResponse
-          : [];
+            ? localsResponse
+            : [];
         const filteredLocals = localsData.filter((local) => String(local?.floor_id) === String(floorId));
         setLocals(filteredLocals);
 
@@ -93,6 +106,17 @@ const ManagerFloorLocalsPage = () => {
       local.status?.toLowerCase().includes(term)
     );
   }, [locals, search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  const paginatedLocals = useMemo(() => {
+    const start = (page - 1) * limit;
+    return filteredLocals.slice(start, start + limit);
+  }, [filteredLocals, page]);
+
+  const totalPages = Math.ceil(filteredLocals.length / limit) || 1;
 
   const stats = useMemo(() => {
     const total = locals.length;
@@ -159,112 +183,239 @@ const ManagerFloorLocalsPage = () => {
   }
 
   return (
-    <div className="space-y-6 pt-12 px-3 sm:px-6">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center gap-4 mb-4">
-          <Button
-            className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-md flex items-center gap-2"
-            onClick={handleBackToFloors}
-          >
-            <FiArrowLeft className="text-base" /> Back
-          </Button>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-              <FiHome className="text-blue-500" />
-              <span>{resolvedPropertyName || 'Property'}</span>
-              <FiLayers className="text-blue-500 ml-2" />
-              <span>Level {floor?.level_number ?? '?'}</span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
-              {floorNameFromUrl || floor?.name || 'Floor'} – Locals
-            </h1>
-            <p className="text-sm text-gray-500">Monitor occupancy and availability for each local on this floor.</p>
-          </div>
+    <div className="min-h-screen bg-gray-900 border-l border-gray-800/50 pb-12">
+      {/* Hero Section */}
+      <div className="relative isolate overflow-hidden bg-gradient-to-br from-teal-950 via-indigo-950 to-slate-950 text-white border-b border-gray-800/50">
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none opacity-20">
+          <div className="absolute top-[20%] left-[-10%] w-[40%] h-[40%] bg-teal-500 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500 rounded-full blur-[120px]" />
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card className="p-4 border rounded-lg shadow-sm">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Locals</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-          </Card>
-          <Card className="p-4 border rounded-lg shadow-sm">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Occupied</p>
-            <p className="text-2xl font-bold text-emerald-600">{stats.occupied}</p>
-          </Card>
-          <Card className="p-4 border rounded-lg shadow-sm">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Available</p>
-            <p className="text-2xl font-bold text-blue-600">{stats.available}</p>
-          </Card>
-          <Card className="p-4 border rounded-lg shadow-sm">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Maintenance</p>
-            <p className="text-2xl font-bold text-amber-600">{stats.maintenance}</p>
-          </Card>
-          <Card className="p-4 border rounded-lg shadow-sm">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">Occupancy</p>
-            <p className="text-2xl font-bold text-indigo-600">{stats.occupancyRate}%</p>
-          </Card>
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-8 py-16 space-y-8 relative z-10">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <Button
+                  className="bg-gray-800/40 hover:bg-gray-800 text-white backdrop-blur border border-gray-700/50 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2 transition-all active:scale-95"
+                  onClick={handleBackToFloors}
+                >
+                  <ArrowLeft size={14} /> System Registry
+                </Button>
+                <div className="px-3 py-1.5 rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20 text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2">
+                  <Layers size={12} /> Level {floor?.level_number ?? '?'}
+                </div>
+              </div>
+
+              <div>
+                <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-white uppercase italic tracking-tighter leading-none">
+                  Unit <span className="text-teal-500">Matrix</span>
+                </h1>
+                <p className="text-gray-400 text-[11px] font-black uppercase tracking-[0.3em] italic mt-4 flex items-center gap-2">
+                  Managing node hierarchy for {resolvedPropertyName || 'Asset Matrix'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            {[
+              { label: 'Total Nodes', value: stats.total, icon: <LayoutDashboard size={18} />, color: 'teal' },
+              { label: 'Occupied', value: stats.occupied, icon: <CheckCircle2 size={18} />, color: 'indigo' },
+              { label: 'Available', value: stats.available, icon: <ShieldCheck size={18} />, color: 'emerald' },
+              { label: 'Maintenance', value: stats.maintenance, icon: <ShieldAlert size={18} />, color: 'rose' },
+              { label: 'Efficiency', value: `${stats.occupancyRate}%`, icon: <History size={18} />, color: 'amber' }
+            ].map((stat, i) => (
+              <div key={i} className="bg-gray-900/40 backdrop-blur-sm p-5 rounded-2xl border border-gray-800/50 shadow-inner group transition-all hover:bg-gray-900/60">
+                <div className="flex items-center gap-3">
+                  <div className={`p-3 bg-gray-900 rounded-xl border border-gray-700/50 text-${stat.color}-400`}>
+                    {stat.icon}
+                  </div>
+                  <div>
+                    <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-0.5">{stat.label}</div>
+                    <div className="text-xl font-black text-white italic tracking-tighter">{stat.value}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="relative w-full sm:w-72">
-            <FiSearch className="absolute left-3 top-3 text-gray-400" />
-            <Input
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-8 mt-8 space-y-8">
+        {/* Search */}
+        <div className="py-4 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b border-gray-800/50 mb-8">
+          <div className="relative max-w-2xl group">
+            <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+              <Search size={18} className="text-gray-500 group-focus-within:text-teal-500 transition-colors" />
+            </div>
+            <input
+              type="text"
+              className="w-full pl-16 pr-6 py-5 bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-[1.5rem] text-white font-bold italic placeholder-gray-500 outline-hidden transition-all shadow-inner focus:border-teal-500/30 focus:shadow-[0_0_20px_rgba(20,184,166,0.1)]"
+              placeholder="Filter nodes by identifier or status..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search locals by number or status..."
-              className="pl-10"
             />
           </div>
         </div>
 
         {filteredLocals.length === 0 ? (
-          <Card className="p-8 text-center text-gray-500 border border-dashed">
-            No locals match your filters.
+          <Card className="p-20 text-center bg-gray-800/40 backdrop-blur-sm border-gray-700/50 border-dashed rounded-[2rem]" hover={false}>
+            <div className="flex justify-center mb-6">
+              <div className="p-6 bg-gray-900 rounded-2xl border border-gray-700/50">
+                <ShieldAlert className="w-12 h-12 text-gray-600" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2 pr-2">Zero Node Matches</h3>
+            <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] italic mb-8">No structural units found within current matrix parameters.</p>
           </Card>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm text-gray-700">
-              <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 text-xs uppercase">
-                <tr>
-                  <th className="p-3 text-left">Local</th>
-                  <th className="p-3 text-left">Status</th>
-                  <th className="p-3 text-left">Area (m²)</th>
-                  <th className="p-3 text-left">Rent (FRW)</th>
-                  <th className="p-3 text-left">Updated</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredLocals.map((local) => {
-                  const meta = STATUS_META[local.status] || {
-                    label: local.status || 'Unknown',
-                    className: 'bg-gray-100 text-gray-700',
-                  };
-                  return (
-                    <tr key={local.id} className="border-b last:border-none hover:bg-gray-50">
-                      <td className="p-3 font-medium text-gray-900 flex items-center gap-2">
-                        <FiLayers className="text-blue-500" />
-                        {local.local_number || local.reference_code || `LOC-${String(local.id).slice(0, 6)}`}
-                      </td>
-                      <td className="p-3">
-                        <Badge className={meta.className} text={meta.label} />
-                      </td>
-                      <td className="p-3">{local.area ? `${local.area}` : '—'}</td>
-                      <td className="p-3">{local.rent_price ? Number(local.rent_price).toLocaleString() : '—'}</td>
-                      <td className="p-3 text-gray-500">
-                        {local.updatedAt
-                          ? new Date(local.updatedAt).toLocaleDateString()
-                          : local.updated_at
-                          ? new Date(local.updated_at).toLocaleDateString()
-                          : '—'}
-                      </td>
+          <>
+            <div className="bg-gray-800/40 backdrop-blur-sm rounded-[2rem] shadow-2xl border border-gray-700/50 overflow-hidden">
+              {/* Mobile Feed */}
+              <div className="md:hidden divide-y divide-gray-700/30 px-4">
+                {paginatedLocals.length === 0 ? (
+                  <div className="p-20 text-center italic text-gray-400 font-bold uppercase text-[10px] tracking-widest">No Node Signal Captured.</div>
+                ) : (
+                  paginatedLocals.map((local) => {
+                    const statusKey = local.status?.toLowerCase();
+                    return (
+                      <div key={local.id} className="py-6 space-y-4 group/row">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-teal-500/10 text-teal-400 flex items-center justify-center border border-teal-500/20 group-hover/row:scale-110 transition-transform shadow-lg">
+                              <LayoutDashboard size={20} />
+                            </div>
+                            <div>
+                              <h3 className="font-black text-white italic uppercase tracking-tighter text-base">
+                                {local.local_number || local.reference_code || `LOC-${String(local.id).slice(0, 6)}`}
+                              </h3>
+                              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic mt-1">NODE_ID: {local.id.slice(0, 8)}</p>
+                            </div>
+                          </div>
+                          <div className={`px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase italic tracking-widest ${statusKey === 'available' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : statusKey === 'occupied' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+                            {local.status || 'Unknown'}
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase italic tracking-widest">
+                          <div className="flex items-center gap-6">
+                            <div>
+                              <p className="text-gray-600 mb-1">Area</p>
+                              <p className="text-white">{local.area || '—'} M²</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-600 mb-1">Rent</p>
+                              <p className="text-white">{local.rent_price ? Number(local.rent_price).toLocaleString() : '—'} FRW</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="hidden md:block overflow-x-auto scrollbar-hide">
+                <table className="w-full border-collapse">
+                  <thead className="bg-gray-900/60 border-b border-gray-700/50">
+                    <tr>
+                      <th className="px-6 py-5 text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] italic">Node Manifest</th>
+                      <th className="px-6 py-5 text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] italic">Status Vector</th>
+                      <th className="px-6 py-5 text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] italic">Dimension (M²)</th>
+                      <th className="px-6 py-5 text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] italic">Rent Provision</th>
+                      <th className="px-6 py-5 text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] italic">Last Sync</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-700/30">
+                    {paginatedLocals.map((local) => {
+                      const statusKey = local.status?.toLowerCase();
+                      return (
+                        <tr key={local.id} className="group transition-all hover:bg-gray-700/20">
+                          <td className="px-6 py-6 min-w-[200px]">
+                            <div className="flex items-center gap-5">
+                              <div className="w-12 h-12 rounded-2xl bg-gray-900 border border-gray-700/50 text-teal-400 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-500">
+                                <LayoutDashboard size={22} />
+                              </div>
+                              <div>
+                                <div className="font-black text-white italic uppercase text-sm tracking-tight group-hover:text-teal-400 transition-colors uppercase">
+                                  {local.local_number || local.reference_code || `LOC-${String(local.id).slice(0, 6)}`}
+                                </div>
+                                <div className="text-[9px] font-black text-gray-600 uppercase italic tracking-widest mt-1">NODE_ID: {local.id.slice(0, 8)}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-6 min-w-[150px]">
+                            <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase italic tracking-widest border ${statusKey === 'available' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                              statusKey === 'occupied' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
+                                'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                              }`}>
+                              <div className={`w-1.5 h-1.5 rounded-full ${statusKey === 'available' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' :
+                                statusKey === 'occupied' ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]' :
+                                  'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'
+                                }`} />
+                              {local.status || 'Unknown'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-6">
+                            <div className="text-lg font-black text-white italic tracking-tighter">
+                              {local.area || '—'}
+                              <span className="text-[10px] text-gray-600 ml-1 font-black uppercase">M²</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-6">
+                            <div className="text-lg font-black text-white italic tracking-tighter">
+                              {local.rent_price ? Number(local.rent_price).toLocaleString() : '—'}
+                              <span className="text-[10px] text-gray-600 ml-1 font-black uppercase">FRW</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-6">
+                            <div className="text-[10px] font-black text-gray-500 uppercase italic tracking-widest flex items-center gap-2">
+                              <History size={12} className="text-gray-700" />
+                              {local.updatedAt
+                                ? new Date(local.updatedAt).toLocaleDateString()
+                                : local.updated_at
+                                  ? new Date(local.updated_at).toLocaleDateString()
+                                  : '—'}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {filteredLocals.length > 0 && (
+              <div className="flex justify-between items-center py-6">
+                <div className="text-[10px] font-black text-gray-500 uppercase italic tracking-[0.2em]">
+                  Index <span className="text-teal-400 font-black">{page}</span> // Matrix <span className="text-white font-black">{totalPages}</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+                    disabled={page <= 1}
+                    className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${page <= 1
+                      ? 'text-gray-700 cursor-not-allowed bg-gray-800/20'
+                      : 'text-gray-400 hover:text-teal-400 hover:bg-gray-800'
+                      }`}
+                  >
+                    Reverse
+                  </button>
+                  <button
+                    onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={page >= totalPages}
+                    className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${page >= totalPages
+                      ? 'text-gray-700 cursor-not-allowed bg-gray-800/20'
+                      : 'bg-teal-600 text-white shadow-xl hover:bg-teal-500 hover:scale-105 active:scale-95'
+                      }`}
+                  >
+                    Advance
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -57,6 +57,7 @@ const useManagerPortfolio = () => {
   const [locals, setLocals] = useState([]);
   const [leases, setLeases] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [floors, setFloors] = useState([]);
   const [portfolioLoading, setPortfolioLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -158,6 +159,29 @@ const useManagerPortfolio = () => {
       setLocals(localsCombined);
       setLeases(leasesWithProperty);
       setPayments(paymentsWithProperty);
+
+      // Fetch floors
+      let floorsResponse = [];
+      if (propertyIds.length > 0) {
+        floorsResponse = await Promise.all(
+          propertyIds.map((propertyId) =>
+            import('../services/floorService').then((module) =>
+              module.getFloorsByPropertyId(propertyId)
+            )
+          )
+        );
+      }
+
+      const floorsCombined = dedupeById(
+        floorsResponse.flatMap((response) => {
+          // Handle various response structures as per floorService
+          if (response?.data?.floors) return response.data.floors;
+          if (response?.floors) return response.floors;
+          if (Array.isArray(response)) return response;
+          return [];
+        }).filter(Boolean)
+      );
+      setFloors(floorsCombined);
     } catch (err) {
       console.error('Failed to load manager portfolio data:', err);
       setLocals([]);
@@ -194,9 +218,12 @@ const useManagerPortfolio = () => {
     properties,
     propertyOptions,
     accessiblePropertyIds,
+    accessiblePropertyIds,
     locals,
     leases,
     payments,
+    floors,
+    localPropertyMap,
     localPropertyMap,
     leasePropertyMap,
     loading: propertiesLoading || portfolioLoading,

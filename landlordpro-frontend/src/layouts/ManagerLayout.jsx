@@ -33,6 +33,7 @@ const getTokenExpiry = (token) => {
 
 const ManagerLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
@@ -43,6 +44,18 @@ const ManagerLayout = () => {
     if (!currentUser || !token) {
       logout();
       navigate('/');
+      return;
+    }
+
+    const role = String(currentUser.role || '').toLowerCase();
+    if (role !== 'manager') {
+      if (role === 'admin') {
+        navigate('/admin');
+      } else {
+        toast.error('Access denied. Manager privileges required.');
+        logout();
+        navigate('/');
+      }
       return;
     }
 
@@ -105,10 +118,12 @@ const ManagerLayout = () => {
         links={managerLinks}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
       />
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col lg:ml-64 transition-all duration-300">
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'lg:ml-24' : 'lg:ml-72'}`}>
         {/* Topbar */}
         <Topbar
           user={user}
@@ -117,7 +132,7 @@ const ManagerLayout = () => {
         />
 
         {/* Page content */}
-        <main className="pt-16 p-4 sm:p-6 bg-gray-50 dark:bg-gray-800 flex-1 overflow-auto">
+        <main className="pt-16 p-4 sm:p-6 bg-gray-950 dark:bg-gray-950 flex-1 overflow-auto custom-scrollbar">
           <Outlet />
         </main>
       </div>

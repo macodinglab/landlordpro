@@ -124,61 +124,66 @@ const Topbar = ({ user, onLogout, onMenuClick }) => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-900 shadow-md flex items-center justify-between px-4 sm:px-6 z-20">
+    <header className="fixed top-0 left-0 right-0 h-20 bg-gray-900/60 backdrop-blur-lg border-b border-gray-800/50 z-20 flex items-center justify-between px-4 sm:px-10 transition-all duration-300">
       {/* Left: Hamburger + Title */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-6">
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          className="lg:hidden p-2.5 rounded-xl bg-gray-800/50 text-gray-400 hover:bg-gray-800 transition-all border border-gray-700/30 shadow-lg"
         >
-          <Menu className="w-6 h-6" />
+          <Menu className="w-5 h-5" />
         </button>
-        <span className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-gray-200">
-          LandlordPro Dashboard
+        <span className="text-lg sm:text-xl font-black bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent uppercase italic tracking-tighter">
+          <span className="hidden sm:inline">Command</span> <span className="text-teal-500">Center</span>
         </span>
       </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-4 relative" ref={menuRef}>
+      <div className="flex items-center gap-3 relative" ref={menuRef}>
         {/* Notifications */}
         <div className="relative">
           <button
             aria-label="Notifications"
-            className="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            className="relative p-2.5 rounded-xl hover:bg-white/80 dark:hover:bg-gray-800/80 text-gray-600 dark:text-gray-400 transition-all border border-transparent hover:border-white/20 dark:hover:border-gray-700/30"
             onClick={() => setNotificationsOpen((prev) => !prev)}
           >
-            <Bell className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
-              <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                {unreadCount}
-              </span>
+              <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-gray-900 animate-pulse" />
             )}
           </button>
 
           {notificationsOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden animate-dropdown z-50">
-              <div className="flex justify-between items-center px-4 py-2 border-b border-gray-100 dark:border-gray-700">
-                <span className="font-medium text-gray-800 dark:text-gray-200">Notifications</span>
+            <div className="absolute right-[-40px] sm:right-0 mt-3 w-72 sm:w-80 bg-gray-950 rounded-2xl shadow-2xl border border-gray-800 overflow-hidden animate-dropdown z-50">
+              <div className="flex justify-between items-center px-5 py-4 border-b border-gray-800 bg-gray-900/50">
+                <span className="font-bold text-white">Notifications</span>
                 <button
                   onClick={handleMarkAllRead}
-                  className="text-xs text-teal-600 hover:text-teal-500 dark:text-teal-400 dark:hover:text-teal-300"
+                  className="text-xs font-semibold text-teal-400 hover:text-teal-300"
                 >
                   Mark all read
                 </button>
               </div>
-              <div className="max-h-64 overflow-y-auto">
+              <div className="max-h-[400px] overflow-y-auto p-2 space-y-1">
                 {notifications.length === 0 ? (
-                  <p className="p-4 text-sm text-gray-500 dark:text-gray-400">No new notifications</p>
+                  <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                    <Bell size={32} className="opacity-10 mb-2" />
+                    <p className="text-sm">No new notifications</p>
+                  </div>
                 ) : (
                   notifications.map((notif) => (
                     <div
                       key={notif.id}
                       onClick={() => handleMarkRead(notif.id)}
-                      className={`px-4 py-2 border-b border-gray-100 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-200 cursor-pointer ${
-                        !notif.is_read ? 'bg-gray-50 dark:bg-gray-700' : ''
-                      }`}
+                      className={`p-3 rounded-xl transition-all cursor-pointer border border-transparent ${!notif.is_read
+                        ? 'bg-teal-50/50 dark:bg-teal-900/10 hover:bg-teal-50 dark:hover:bg-teal-900/20'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                        }`}
                     >
-                      {notif.message}
+                      <p className={`text-sm ${!notif.is_read ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {notif.message}
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-1">Just now</p>
                     </div>
                   ))
                 )}
@@ -191,47 +196,48 @@ const Topbar = ({ user, onLogout, onMenuClick }) => {
         <button
           aria-label="Toggle dark mode"
           onClick={() => setDarkMode(!darkMode)}
-          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          className="p-2.5 rounded-xl hover:bg-white/80 dark:hover:bg-gray-800/80 text-gray-600 dark:text-gray-400 transition-all border border-transparent hover:border-white/20 dark:hover:border-gray-700/30"
         >
-          {darkMode ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />}
+          {darkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5" />}
         </button>
+
+        <div className="h-6 w-px bg-gray-200 dark:bg-gray-800 mx-1" />
 
         {/* User dropdown */}
         <div className="relative">
           <button
             onClick={() => setMenuOpen((prev) => !prev)}
-            className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-full"
-            aria-haspopup="true"
-            aria-expanded={menuOpen}
+            className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-white/80 dark:hover:bg-gray-800/80 transition-all border border-transparent hover:border-white/20 dark:hover:border-gray-700/30"
           >
-            <Avatar user={user} size={9} />
-            <span className="hidden sm:inline-block text-gray-800 dark:text-gray-200 truncate max-w-[120px]">
-              {displayName}
-            </span>
+            <Avatar user={user} size={8} />
+            <div className="hidden sm:block text-left">
+              <p className="text-xs font-bold text-gray-900 dark:text-white leading-tight truncate max-w-[100px]">{displayName}</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight truncate max-w-[100px] uppercase tracking-tighter">Admin</p>
+            </div>
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden animate-dropdown">
-              <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{displayName}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{user.email || 'Admin User'}</p>
+            <div className="absolute right-0 mt-3 w-56 bg-gray-950 rounded-2xl shadow-2xl border border-gray-800 overflow-hidden animate-dropdown z-50 p-2">
+              <div className="px-3 py-3 mb-2 bg-gray-900/50 rounded-xl">
+                <p className="text-sm font-bold text-white truncate">{displayName}</p>
+                <p className="text-[10px] text-gray-500 truncate">{user.email || 'Admin User'}</p>
               </div>
 
-              <button onClick={goToProfile} className="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-                <User className="w-4 h-4" /> Profile
-              </button>
-              <button className="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-                <Settings className="w-4 h-4" /> Settings
-              </button>
-
-              <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
-
-              <button
-                onClick={onLogout}
-                className="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 transition"
-              >
-                <LogOut className="w-4 h-4" /> Logout
-              </button>
+              <div className="space-y-1">
+                <button onClick={goToProfile} className="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm text-gray-300 hover:bg-gray-900 hover:text-white transition-all">
+                  <User size={16} className="opacity-70" /> Profile
+                </button>
+                <button className="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm text-gray-300 hover:bg-gray-900 hover:text-white transition-all">
+                  <Settings size={16} className="opacity-70" /> Settings
+                </button>
+                <div className="h-px bg-gray-800 my-1 mx-2" />
+                <button
+                  onClick={onLogout}
+                  className="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all font-medium"
+                >
+                  <LogOut size={16} /> Logout
+                </button>
+              </div>
             </div>
           )}
         </div>

@@ -45,6 +45,46 @@ async function getLocalsByPropertyId(req, res) {
 }
 
 /**
+ * Get locals by floor ID
+ */
+async function getLocalsByFloorId(req, res) {
+  try {
+    const { floorId } = req.params;
+
+    // Check access for managers
+    if (req.user.role === 'manager') {
+      const Floor = require('../models/Floor');
+      const Property = require('../models/Property');
+
+      const floor = await Floor.findByPk(floorId, {
+        include: [{ model: Property, as: 'propertyForFloor', attributes: ['id', 'manager_id'] }]
+      });
+
+      if (!floor) {
+        return res.status(404).json({ success: false, message: 'Floor not found' });
+      }
+
+      // Note: the association might be 'property' or 'propertyForFloor' depending on model definition. 
+      // Based on floorService.js it seems to be 'propertyForFloor' in Floor model.
+      // Let's check Floor model if needed, but floorService uses 'propertyForFloor'.
+      // However, LocalService uses 'floor' relation.
+
+      const managerId = floor.propertyForFloor?.manager_id;
+
+      if (managerId !== req.user.id) {
+        return res.status(403).json({ success: false, message: 'Access denied: You are not assigned to this property.' });
+      }
+    }
+
+    const data = await localService.getAllLocals({ page: 1, limit: 1000, floorId, user: req.user });
+    res.status(200).json({ success: true, locals: data.locals });
+  } catch (err) {
+    console.error(err);
+    res.status(err.status || 500).json({ success: false, message: err.message });
+  }
+}
+
+/**
  * Get a single local by ID
  */
 async function getLocalById(req, res) {
@@ -152,4 +192,5 @@ module.exports = {
   restoreLocal,
   updateLocalStatus,
   getLocalsByPropertyId,
+  getLocalsByFloorId,
 };

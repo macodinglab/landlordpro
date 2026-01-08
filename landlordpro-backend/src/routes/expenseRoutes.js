@@ -34,7 +34,7 @@ router.put(
 router.get('/expenses/:expenseId/proof/:filename', expenseController.getProofFile);
 
 // -------------------- ADMIN-ONLY ROUTES --------------------
-router.use(adminOnly); // All routes below are admin-only
+router.use('/expenses', adminOnly); // All routes below are admin-only
 
 // Soft & hard delete
 router.delete('/expenses/:id', expenseController.deleteExpense);

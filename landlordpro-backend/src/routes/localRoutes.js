@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const localController = require('../controllers/localController');
 const { authenticate, adminOnly, managerOrAdminOnly } = require('../middleware/authMiddleware');
-const verifyManagerAccess = require('../middleware/verifyManagerAccess'); 
+const verifyManagerAccess = require('../middleware/verifyManagerAccess');
 
 // ======================================
 // 🔐 All routes require authentication
@@ -45,5 +45,8 @@ router.patch(
 
 // Get locals by property ID (any authenticated user)
 router.get('/properties/:id/locals', localController.getLocalsByPropertyId);
+
+// Get locals by floor ID (any authenticated user)
+router.get('/locals/floor/:floorId', localController.getLocalsByFloorId);
 
 module.exports = router;

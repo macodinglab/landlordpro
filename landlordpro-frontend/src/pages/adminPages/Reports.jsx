@@ -13,8 +13,10 @@ import {
   Cell,
   BarChart,
   Bar,
+  AreaChart,
+  Area
 } from 'recharts';
-import { Card, Select, Button, Spinner } from '../../components';
+import { Card, Select, Button } from '../../components';
 import {
   getAllProperties,
 } from '../../services/propertyService';
@@ -23,28 +25,41 @@ import leaseService from '../../services/leaseService';
 import { getAllPayments } from '../../services/paymentService';
 import { getAllExpenses } from '../../services/expenseService';
 import { showError, showSuccess } from '../../utils/toastHelper';
-import { FiDownload, FiRefreshCw, FiFilter, FiBarChart2, FiDollarSign, FiHome } from 'react-icons/fi';
+import {
+  Download,
+  RefreshCw,
+  BarChart2,
+  DollarSign,
+  Home,
+  Activity,
+  TrendingUp,
+  PieChart as PieIcon,
+  Calendar,
+  ShieldCheck,
+  Zap,
+  Layers,
+  Archive,
+  ArrowUpRight,
+  ArrowDownRight,
+  Target,
+  Building
+} from 'lucide-react';
 
-const COLORS = ['#14B8A6', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', '#10B981'];
+const COLORS = ['#8b5cf6', '#10b981', '#3b82f6', '#ec4899', '#f59e0b', '#ef4444'];
 
 const RANGE_OPTIONS = [
-  { label: 'Last 3 Months', value: '3m' },
-  { label: 'Last 6 Months', value: '6m' },
-  { label: 'Last 12 Months', value: '12m' },
+  { label: 'Q1 Analytics (3M)', value: '3m' },
+  { label: 'Semi-Annual Spectrum (6M)', value: '6m' },
+  { label: 'Annual Longitudinal (12M)', value: '12m' },
 ];
 
 const computeRange = (value) => {
   const end = new Date();
   const start = new Date(end);
   switch (value) {
-    case '12m':
-      start.setFullYear(end.getFullYear() - 1);
-      break;
-    case '6m':
-      start.setMonth(end.getMonth() - 5);
-      break;
-    default:
-      start.setMonth(end.getMonth() - 2);
+    case '12m': start.setFullYear(end.getFullYear() - 1); break;
+    case '6m': start.setMonth(end.getMonth() - 5); break;
+    default: start.setMonth(end.getMonth() - 2);
   }
   start.setDate(1);
   end.setHours(23, 59, 59, 999);
@@ -69,29 +84,22 @@ const initMonthlySeries = (start, end) => {
 };
 
 const formatCurrency = (value) =>
-  new Intl.NumberFormat('en-RW', { style: 'currency', currency: 'RWF', maximumFractionDigits: 0 }).format(
-    value || 0
-  );
+  new Intl.NumberFormat('en-RW', { style: 'currency', currency: 'RWF', maximumFractionDigits: 0 }).format(value || 0);
 
 const AdminReports = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [properties, setProperties] = useState([]);
   const [locals, setLocals] = useState([]);
-  const [leases, setLeases] = useState([]);
   const [payments, setPayments] = useState([]);
   const [expenses, setExpenses] = useState([]);
-
   const [range, setRange] = useState('6m');
   const [selectedPropertyId, setSelectedPropertyId] = useState('');
 
   const { start, end } = useMemo(() => computeRange(range), [range]);
 
   const propertyOptions = useMemo(
-    () => [{ label: 'All Properties', value: '' }, ...properties.map((property) => ({
-      label: property.name || 'Unnamed property',
-      value: String(property.id),
-    }))],
+    () => [{ label: 'Global Portfolio', value: '' }, ...properties.map((p) => ({ label: p.name || 'Unnamed node', value: String(p.id) }))],
     [properties]
   );
 
@@ -106,70 +114,25 @@ const AdminReports = () => {
         getAllExpenses({ page: 1, limit: 2000 }),
       ]);
 
-      const props = Array.isArray(propertiesRes?.properties)
-        ? propertiesRes.properties
-        : Array.isArray(propertiesRes?.data)
-        ? propertiesRes.data
-        : Array.isArray(propertiesRes)
-        ? propertiesRes
-        : [];
-      setProperties(props);
-
-      const localsData = Array.isArray(localsRes?.locals)
-        ? localsRes.locals
-        : Array.isArray(localsRes?.data)
-        ? localsRes.data
-        : Array.isArray(localsRes)
-        ? localsRes
-        : [];
-      setLocals(localsData);
-
-      const leasesData = Array.isArray(leasesRes?.data)
-        ? leasesRes.data
-        : Array.isArray(leasesRes?.leases)
-        ? leasesRes.leases
-        : Array.isArray(leasesRes)
-        ? leasesRes
-        : [];
-      setLeases(leasesData);
-
-      const paymentsData = Array.isArray(paymentsRes?.data)
-        ? paymentsRes.data
-        : Array.isArray(paymentsRes)
-        ? paymentsRes
-        : [];
-      setPayments(paymentsData);
-
-      const expensesData = Array.isArray(expensesRes?.data)
-        ? expensesRes.data
-        : Array.isArray(expensesRes?.expenses)
-        ? expensesRes.expenses
-        : Array.isArray(expensesRes)
-        ? expensesRes
-        : [];
-      setExpenses(expensesData);
+      setProperties(propertiesRes?.properties || propertiesRes?.data || propertiesRes || []);
+      setLocals(localsRes?.locals || localsRes?.data || localsRes || []);
+      setPayments(paymentsRes?.data || paymentsRes || []);
+      setExpenses(expensesRes?.data || expensesRes?.expenses || expensesRes || []);
     } catch (error) {
-      console.error(error);
-      showError(error?.message || 'Failed to load reports data');
+      showError('Failed to synchronize analytical streams.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const filteredPayments = useMemo(() => {
     return payments.filter((payment) => {
       const date = new Date(payment.endDate || payment.end_date || payment.created_at);
-      if (Number.isNaN(date.getTime())) return false;
-      if (date < start || date > end) return false;
-      if (selectedPropertyId) {
-        const propertyId = String(payment.propertyId || payment.property_id || '');
-        return propertyId === selectedPropertyId;
-      }
+      if (Number.isNaN(date.getTime()) || date < start || date > end) return false;
+      if (selectedPropertyId) return String(payment.propertyId || payment.property_id || '') === selectedPropertyId;
       return true;
     });
   }, [payments, start, end, selectedPropertyId]);
@@ -177,11 +140,8 @@ const AdminReports = () => {
   const filteredExpenses = useMemo(() => {
     return expenses.filter((expense) => {
       const date = new Date(expense.due_date || expense.payment_date || expense.created_at);
-      if (Number.isNaN(date.getTime())) return false;
-      if (date < start || date > end) return false;
-      if (selectedPropertyId) {
-        return String(expense.property_id || '') === selectedPropertyId;
-      }
+      if (Number.isNaN(date.getTime()) || date < start || date > end) return false;
+      if (selectedPropertyId) return String(expense.property_id || '') === selectedPropertyId;
       return true;
     });
   }, [expenses, start, end, selectedPropertyId]);
@@ -190,319 +150,256 @@ const AdminReports = () => {
     const series = initMonthlySeries(start, end);
     const map = new Map(series.map((entry) => [entry.key, entry]));
 
-    filteredPayments.forEach((payment) => {
-      const date = new Date(payment.endDate || payment.end_date || payment.created_at);
-      const key = `${date.getFullYear()}-${date.getMonth()}`;
-      const entry = map.get(key);
-      if (entry) {
-        entry.income += Number(payment.amount) || 0;
-        entry.leases += 1;
-      }
+    filteredPayments.forEach((p) => {
+      const date = new Date(p.endDate || p.end_date || p.created_at);
+      const entry = map.get(`${date.getFullYear()}-${date.getMonth()}`);
+      if (entry) { entry.income += Number(p.amount) || 0; entry.leases += 1; }
     });
 
-    filteredExpenses.forEach((expense) => {
-      const date = new Date(expense.due_date || expense.payment_date || expense.created_at);
-      const key = `${date.getFullYear()}-${date.getMonth()}`;
-      const entry = map.get(key);
-      if (entry) entry.expenses += Number(expense.amount) || 0;
+    filteredExpenses.forEach((e) => {
+      const date = new Date(e.due_date || e.payment_date || e.created_at);
+      const entry = map.get(`${date.getFullYear()}-${date.getMonth()}`);
+      if (entry) entry.expenses += Number(e.amount) || 0;
     });
 
-    return Array.from(map.values()).map((entry) => ({
-      ...entry,
-      income: Number(entry.income.toFixed(2)),
-      expenses: Number(entry.expenses.toFixed(2)),
-      profit: Number((entry.income - entry.expenses).toFixed(2)),
+    return Array.from(map.values()).map((e) => ({
+      ...e,
+      income: Number(e.income.toFixed(2)),
+      expenses: Number(e.expenses.toFixed(2)),
+      profit: Number((e.income - e.expenses).toFixed(2)),
     }));
   }, [filteredPayments, filteredExpenses, start, end]);
 
   const expenseByCategory = useMemo(() => {
     const totals = new Map();
-    filteredExpenses.forEach((expense) => {
-      const category = expense.category || 'uncategorised';
-      totals.set(category, (totals.get(category) || 0) + (Number(expense.amount) || 0));
+    filteredExpenses.forEach((e) => {
+      const cat = e.category || 'uncategorised';
+      totals.set(cat, (totals.get(cat) || 0) + (Number(e.amount) || 0));
     });
-    return Array.from(totals.entries())
-      .map(([name, value]) => ({ name, value: Number(value.toFixed(2)) }))
-      .sort((a, b) => b.value - a.value);
+    return Array.from(totals.entries()).map(([name, value]) => ({ name, value: Number(value.toFixed(2)) })).sort((a, b) => b.value - a.value);
   }, [filteredExpenses]);
 
   const propertyPerformance = useMemo(() => {
     const map = new Map();
-
-    filteredPayments.forEach((payment) => {
-      const propertyId = String(payment.propertyId || payment.property_id || '');
-      if (!propertyId) return;
-      const entry = map.get(propertyId) || { income: 0, expenses: 0 };
-      entry.income += Number(payment.amount) || 0;
-      map.set(propertyId, entry);
+    filteredPayments.forEach((p) => {
+      const pid = String(p.propertyId || p.property_id || '');
+      if (!pid) return;
+      const entry = map.get(pid) || { income: 0, expenses: 0 };
+      entry.income += Number(p.amount) || 0;
+      map.set(pid, entry);
     });
-
-    filteredExpenses.forEach((expense) => {
-      const propertyId = String(expense.property_id || '');
-      if (!propertyId) return;
-      const entry = map.get(propertyId) || { income: 0, expenses: 0 };
-      entry.expenses += Number(expense.amount) || 0;
-      map.set(propertyId, entry);
+    filteredExpenses.forEach((e) => {
+      const pid = String(e.property_id || '');
+      if (!pid) return;
+      const entry = map.get(pid) || { income: 0, expenses: 0 };
+      entry.expenses += Number(e.amount) || 0;
+      map.set(pid, entry);
     });
-
-    return Array.from(map.entries()).map(([propertyId, entry]) => ({
-      property: properties.find((property) => String(property.id) === propertyId)?.name || 'Unknown',
-      income: Number(entry.income.toFixed(2)),
-      expenses: Number(entry.expenses.toFixed(2)),
-      profit: Number((entry.income - entry.expenses).toFixed(2)),
+    return Array.from(map.entries()).map(([pid, e]) => ({
+      property: properties.find((p) => String(p.id) === pid)?.name || 'Unknown',
+      income: Number(e.income.toFixed(2)),
+      expenses: Number(e.expenses.toFixed(2)),
+      profit: Number((e.income - e.expenses).toFixed(2)),
     }));
   }, [filteredPayments, filteredExpenses, properties]);
 
-  const totalIncome = useMemo(
-    () => filteredPayments.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0),
-    [filteredPayments]
-  );
-  const totalExpenses = useMemo(
-    () => filteredExpenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0),
-    [filteredExpenses]
-  );
+  const totalIncome = useMemo(() => filteredPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0), [filteredPayments]);
+  const totalExpenses = useMemo(() => filteredExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0), [filteredExpenses]);
   const netResult = totalIncome - totalExpenses;
 
   const occupancyStats = useMemo(() => {
-    const relevantLocals = selectedPropertyId
-      ? locals.filter((local) => String(local.property_id || local.propertyId) === selectedPropertyId)
-      : locals;
-    const total = relevantLocals.length;
-    const occupied = relevantLocals.filter((local) => local.status === 'occupied').length;
-    const available = relevantLocals.filter((local) => local.status === 'available').length;
-    const maintenance = relevantLocals.filter((local) => local.status === 'maintenance').length;
+    const rel = selectedPropertyId ? locals.filter((l) => String(l.property_id || l.propertyId) === selectedPropertyId) : locals;
+    const total = rel.length;
+    const occupied = rel.filter((l) => l.status === 'occupied').length;
     const rate = total ? Math.round((occupied / total) * 100) : 0;
-    return { total, occupied, available, maintenance, rate };
+    return { total, occupied, rate };
   }, [locals, selectedPropertyId]);
 
-  const summaryCards = [
-    {
-      title: 'Income',
-      value: formatCurrency(totalIncome),
-      subtitle: `${filteredPayments.length} payments`,
-      icon: <FiDollarSign className="text-emerald-500" size={20} />,
-      color: 'bg-emerald-50',
-    },
-    {
-      title: 'Expenses',
-      value: formatCurrency(totalExpenses),
-      subtitle: `${filteredExpenses.length} expense records`,
-      icon: <FiBarChart2 className="text-rose-500" size={20} />,
-      color: 'bg-rose-50',
-    },
-    {
-      title: 'Net Result',
-      value: formatCurrency(netResult),
-      subtitle: netResult >= 0 ? 'Positive cash flow' : 'Negative cash flow',
-      icon: <FiDollarSign className="text-blue-500" size={20} />,
-      color: netResult >= 0 ? 'bg-blue-50' : 'bg-amber-50',
-    },
-    {
-      title: 'Occupancy',
-      value: `${occupancyStats.rate}%`,
-      subtitle: `${occupancyStats.occupied}/${occupancyStats.total} units occupied`,
-      icon: <FiHome className="text-indigo-500" size={20} />,
-      color: 'bg-indigo-50',
-    },
-  ];
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    showSuccess('Reports refreshed');
-  };
+  const handleRefresh = async () => { setRefreshing(true); await loadData(); showSuccess('Analytical pipelines refreshed.'); };
 
   const handleExport = () => {
-    const payload = {
-      range,
-      propertyId: selectedPropertyId,
-      totals: { income: totalIncome, expenses: totalExpenses, profit: netResult },
-      payments: filteredPayments,
-      expenses: filteredExpenses,
-    };
+    const payload = { range, propertyId: selectedPropertyId, totals: { income: totalIncome, expenses: totalExpenses, profit: netResult }, payments: filteredPayments, expenses: filteredExpenses };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `admin-reports-${Date.now()}.json`;
+    link.download = `landlordpro-intel-${Date.now()}.json`;
     link.click();
     URL.revokeObjectURL(link.href);
+    showSuccess('Biological data extracted to JSON terminal.');
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full py-16">
-        <Spinner />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-6 animate-pulse">
+          <Zap size={48} className="text-violet-500" />
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Interrogating Intel Matrix...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pt-12 px-3 sm:px-6 pb-12">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Portfolio Reports</h1>
-          <p className="text-sm text-gray-500">
-            Financial and occupancy insights across all managed properties.
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Select
-            label="Period"
-            value={RANGE_OPTIONS.find((item) => item.value === range)}
-            options={RANGE_OPTIONS}
-            onChange={(option) => setRange(option.value)}
-            isSearchable={false}
-            className="min-w-[180px]"
-          />
-          <Select
-            label="Property"
-            value={propertyOptions.find((option) => option.value === selectedPropertyId)}
-            options={propertyOptions}
-            onChange={(option) => setSelectedPropertyId(option?.value || '')}
-            className="min-w-[220px]"
-          />
-          <div className="flex gap-2">
-            <Button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg"
-            >
-              <FiRefreshCw className={refreshing ? 'animate-spin' : ''} />
-              {refreshing ? 'Refreshing' : 'Refresh'}
-            </Button>
-            <Button
-              onClick={handleExport}
-              className="flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-lg"
-            >
-              <FiDownload /> Export JSON
-            </Button>
+    <div className="min-h-screen bg-gray-900 px-4 py-8 md:p-8">
+      <div className="max-w-[1600px] mx-auto space-y-12">
+
+        {/* Header Section */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/20 text-[10px] font-black uppercase tracking-widest italic animate-pulse">
+              <Activity size={12} /> Strategic Intelligence Spectrum
+            </div>
+            <div>
+              <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-white uppercase italic tracking-tighter leading-none">
+                Core <span className="text-violet-500">Reports</span>
+              </h1>
+              <p className="text-gray-400 text-[11px] font-black uppercase tracking-[0.3em] italic mt-4 flex items-center gap-2">
+                <ShieldCheck size={14} className="text-violet-500" /> Aggregating longitudinal performance heuristics
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-4 w-full md:w-auto">
+            <div className="w-48">
+              <Select
+                options={RANGE_OPTIONS}
+                value={RANGE_OPTIONS.find(o => o.value === range)}
+                onChange={(o) => setRange(o.value)}
+              />
+            </div>
+            <div className="w-64">
+              <Select
+                options={propertyOptions}
+                value={propertyOptions.find(o => o.value === selectedPropertyId)}
+                onChange={(o) => setSelectedPropertyId(o?.value || '')}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleRefresh} className="p-4 bg-gray-800/50 rounded-2xl text-violet-400 hover:bg-violet-500/10 transition-all border border-gray-700/50 shadow-xl">
+                <RefreshCw size={20} className={refreshing ? 'animate-spin' : ''} />
+              </button>
+              <button onClick={handleExport} className="p-4 bg-violet-600 rounded-2xl text-white hover:bg-violet-500 transition-all shadow-xl shadow-violet-900/20">
+                <Download size={20} />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {summaryCards.map((card) => (
-          <Card key={card.title} className={`p-5 border rounded-xl shadow-sm ${card.color}`}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-500">{card.title}</p>
-                <h2 className="text-2xl font-bold text-gray-900 mt-1">{card.value}</h2>
-                <p className="text-xs text-gray-500 mt-2">{card.subtitle}</p>
+        {/* KPI Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {[
+            { label: 'Fiscal Inflow', val: formatCurrency(totalIncome), sub: `${filteredPayments.length} Signals`, icon: TrendingUp, color: 'emerald' },
+            { label: 'Resource Outflow', val: formatCurrency(totalExpenses), sub: `${filteredExpenses.length} Impact Points`, icon: ArrowDownRight, color: 'rose' },
+            { label: 'Net Yield', val: formatCurrency(netResult), sub: 'Portfolio Delta', icon: Target, color: 'violet' },
+            { label: 'Occupancy Flow', val: `${occupancyStats.rate}%`, sub: `${occupancyStats.occupied}/${occupancyStats.total} Nodes`, icon: Home, color: 'sky' }
+          ].map((kpi, idx) => (
+            <Card key={idx} className="p-8 group relative overflow-hidden" hover={true}>
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform duration-500">
+                <kpi.icon size={48} className={`text-${kpi.color}-500`} />
               </div>
-              <div className="p-3 bg-white border rounded-lg shadow-sm">{card.icon}</div>
+              <div className="space-y-4">
+                <p className="text-[10px] font-black text-gray-500 uppercase italic tracking-widest">{kpi.label}</p>
+                <div className="space-y-1">
+                  <p className="text-3xl font-black italic tracking-tighter text-white leading-none">{kpi.val}</p>
+                  <p className="text-[10px] font-black text-gray-500 uppercase italic">{kpi.sub}</p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Charts Layer */}
+        <Card className="p-10 border-gray-700/50" hover={false}>
+          <div className="flex justify-between items-center mb-10 pb-6 border-b border-gray-800">
+            <div>
+              <h3 className="text-2xl font-black text-white italic tracking-tighter flex items-center gap-3 uppercase">
+                <BarChart2 className="text-violet-500" /> Longitudinal Variance
+              </h3>
+              <p className="text-[10px] font-black uppercase text-gray-500 tracking-[0.2em] italic">Comparing inflow vs resource deletion vectors</p>
+            </div>
+            <div className="px-6 py-3 rounded-2xl bg-gray-900/50 border border-gray-800 text-[10px] font-black uppercase text-gray-400 tracking-widest italic">
+              {start.toLocaleDateString()} — {end.toLocaleDateString()}
+            </div>
+          </div>
+
+          <div className="h-[450px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={monthlySeries}>
+                <defs>
+                  <linearGradient id="colorInc" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorProf" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#64748B' }} dy={15} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#64748B' }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(139, 92, 246, 0.2)', borderRadius: '16px', color: '#fff' }}
+                />
+                <Legend verticalAlign="top" height={50} align="right" />
+                <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorInc)" name="Inflow" />
+                <Area type="monotone" dataKey="expenses" stroke="#f43f5e" strokeWidth={4} fillOpacity={1} fill="url(#colorExp)" name="Outflow" />
+                <Area type="monotone" dataKey="profit" stroke="#8b5cf6" strokeWidth={4} fillOpacity={1} fill="url(#colorProf)" name="Net Yield" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card className="p-10 border-gray-700/50" hover={false}>
+            <h3 className="text-xl font-black text-white italic uppercase tracking-tighter mb-10 flex items-center gap-3">
+              <PieIcon size={24} className="text-pink-500" /> Drain Concentration
+            </h3>
+            <div className="h-[350px] flex items-center justify-center">
+              {expenseByCategory.length ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie dataKey="value" data={expenseByCategory} cx="50%" cy="50%" innerRadius={80} outerRadius={120} stroke="none" paddingAngle={8}>
+                      {expenseByCategory.map((entry, index) => (
+                        <Cell key={entry.name} fill={COLORS[index % COLORS.length]} cornerRadius={8} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(v) => formatCurrency(v)}
+                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(139, 92, 246, 0.2)', borderRadius: '16px', color: '#fff' }}
+                    />
+                    <Legend verticalAlign="bottom" />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : <p className="text-gray-600 font-black italic uppercase text-[10px] tracking-widest">No Signals Synthesized</p>}
             </div>
           </Card>
-        ))}
-      </div>
 
-      <Card className="p-6 border rounded-xl shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <FiFilter className="text-blue-500" /> Income vs Expenses
-          </h2>
-          <span className="text-xs text-gray-500">
-            {start.toLocaleDateString()} – {end.toLocaleDateString()}
-          </span>
-        </div>
-        {monthlySeries.length ? (
-          <ResponsiveContainer width="100%" height={320}>
-            <LineChart data={monthlySeries}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-              <XAxis dataKey="month" stroke="#9CA3AF" />
-              <YAxis stroke="#9CA3AF" tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
-              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              <Legend />
-              <Line type="monotone" dataKey="income" stroke="#14B8A6" strokeWidth={3} dot={{ r: 4 }} name="Income" />
-              <Line type="monotone" dataKey="expenses" stroke="#F87171" strokeWidth={3} dot={{ r: 4 }} name="Expenses" />
-              <Line type="monotone" dataKey="profit" stroke="#3B82F6" strokeWidth={3} dot={{ r: 4 }} name="Profit" />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="py-12 text-center text-gray-500">No activity recorded for this period.</div>
-        )}
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6 border rounded-xl shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Expenses by Category</h2>
-          {expenseByCategory.length ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie dataKey="value" data={expenseByCategory} nameKey="name" cx="50%" cy="50%" outerRadius={110}>
-                    {expenseByCategory.map((entry, index) => (
-                      <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                </PieChart>
+          <Card className="p-10 border-gray-700/50" hover={false}>
+            <h3 className="text-xl font-black text-white italic uppercase tracking-tighter mb-10 flex items-center gap-3">
+              <Layers size={24} className="text-violet-500" /> Node Performance Matrix
+            </h3>
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={propertyPerformance}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
+                  <XAxis dataKey="property" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: '#64748B' }} />
+                  <Tooltip
+                    formatter={(v) => formatCurrency(v)}
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(139, 92, 246, 0.2)', borderRadius: '16px', color: '#fff' }}
+                  />
+                  <Bar dataKey="income" fill="#8b5cf6" radius={[6, 6, 0, 0]} barSize={20} name="Node Inflow" />
+                  <Bar dataKey="expenses" fill="#f43f5e" radius={[6, 6, 0, 0]} barSize={20} name="Node Outflow" />
+                </BarChart>
               </ResponsiveContainer>
-              <div className="space-y-3">
-                {expenseByCategory.map((entry, index) => (
-                  <div key={entry.name} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border">
-                    <div className="flex items-center gap-3">
-                      <span
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      />
-                      <span className="text-sm font-medium text-gray-700 capitalize">{entry.name}</span>
-                    </div>
-                    <span className="text-sm font-semibold text-gray-800">{formatCurrency(entry.value)}</span>
-                  </div>
-                ))}
-              </div>
             </div>
-          ) : (
-            <div className="py-12 text-center text-gray-500">No expense data for the selected filters.</div>
-          )}
-        </Card>
-
-        <Card className="p-6 border rounded-xl shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Property Performance</h2>
-          {propertyPerformance.length ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={propertyPerformance}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis dataKey="property" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                <Legend />
-                <Bar dataKey="income" fill="#14B8A6" name="Income" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="expenses" fill="#F59E0B" name="Expenses" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="profit" fill="#3B82F6" name="Profit" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="py-12 text-center text-gray-500">No transactions recorded for comparison.</div>
-          )}
-        </Card>
+          </Card>
+        </div>
       </div>
-
-      <Card className="p-6 border rounded-xl shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Occupancy Snapshot</h2>
-        {occupancyStats.total ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="p-4 border rounded-lg shadow-sm">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Total Units</p>
-              <p className="text-2xl font-bold text-gray-900">{occupancyStats.total}</p>
-            </Card>
-            <Card className="p-4 border rounded-lg shadow-sm">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Occupied</p>
-              <p className="text-2xl font-bold text-emerald-600">{occupancyStats.occupied}</p>
-            </Card>
-            <Card className="p-4 border rounded-lg shadow-sm">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Available</p>
-              <p className="text-2xl font-bold text-blue-600">{occupancyStats.available}</p>
-            </Card>
-            <Card className="p-4 border rounded-lg shadow-sm">
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Maintenance</p>
-              <p className="text-2xl font-bold text-amber-600">{occupancyStats.maintenance}</p>
-            </Card>
-          </div>
-        ) : (
-          <div className="py-12 text-center text-gray-500">No local data available.</div>
-        )}
-      </Card>
     </div>
   );
 };

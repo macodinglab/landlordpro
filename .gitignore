@@ -18,7 +18,7 @@ landlordpro-backend/yarn-error.log*
 # Sequelize auto-generated files
 landlordpro-backend/src/migrations/
 landlordpro-backend/src/seeders/
-landlordpro-backend/src/models/index.js
+# landlordpro-backend/src/models/index.js
 
 # ==========================
 # Frontend / React + Vite

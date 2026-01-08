@@ -62,7 +62,7 @@ router.put('/properties/:id', managerOrAdminOnly, propertyController.updatePrope
 //     → Manager can delete their assigned property
 //     → Access control handled by service layer
 // ------------------------------------------------------
-router.delete('/properties/:id', managerOrAdminOnly, propertyController.deleteProperty);
+router.delete('/properties/:id', adminOnly, propertyController.deleteProperty);
 
 // ------------------------------------------------------
 // 🔸 Get all floors for a property

@@ -3,6 +3,7 @@ export { default as LoginPage } from './authPages/LoginPage'
 export { default as ForgotPassword } from './authPages/ForgotPassword'
 export { default as ResetPassword } from './authPages/ResetPassword'
 export { default as ProfilePage } from './authPages/ProfilePage'
+export { default as SignupPage } from './authPages/SignupPage'
 
 // Admin pages
 export { default as AdminDashboard } from './adminPages/AdminDashboard'
@@ -17,8 +18,9 @@ export { default as LeasePage } from './adminPages/LeasePage'
 export { default as PaymentModePage } from './adminPages/PaymentModePage'
 export { default as PaymentPage } from './adminPages/PaymentPage'
 export { default as ExpensePage } from './adminPages/ExpensePage'
+export { default as StaffPage } from './adminPages/StaffPage'
 export { default as Documents } from './adminPages/Documents'
-export { default as Reports } from './adminPages/Reports'
+export { default as Reports } from './adminPages/ReportsPage'
 export { default as AdminSettingsPage } from './adminPages/SettingsPage'
 
 // Manager pages

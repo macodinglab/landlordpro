@@ -22,8 +22,8 @@ const allowedOrigins = [
   'http://localhost',
   'http://localhost:5173',
   'http://localhost:80',
-  'http://localhost:3000', 
-  'http://frontend', 
+  'http://localhost:3000',
+  'http://frontend',
   'https://api.landlordpro.rw',
   'https://landlordpro.rw',
   'https://www.landlordpro.rw'
@@ -58,6 +58,10 @@ const paymentModeRoutes = require('./src/routes/paymentModeRoutes');
 const paymentRoutes = require('./src/routes/paymentRoutes');
 const expenseRoutes = require('./src/routes/expenseRoutes');
 const floorRouter = require('./src/routes/floorRouter');
+const staffRoutes = require('./src/routes/staffRoutes');
+const uploadRoutes = require('./src/routes/uploadRoutes');
+const reportRoutes = require('./src/routes/reportRoutes');
+const managerReportRoutes = require('./src/routes/managerReportRoutes');
 
 // API endpoints
 app.use('/api', userRoutes);
@@ -67,8 +71,12 @@ app.use('/api', tenantRoutes);
 app.use('/api', leaseRoutes);
 app.use('/api', paymentModeRoutes);
 app.use('/api', paymentRoutes);
-app.use('/api', expenseRoutes);
 app.use('/api', floorRouter);
+app.use('/api', expenseRoutes);
+app.use('/api', staffRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/manager/reports', managerReportRoutes); // Manager and admin - MUST come before /api/reports
+app.use('/api/reports', reportRoutes); // Admin only
 
 // Swagger documentation
 setupSwagger(app);

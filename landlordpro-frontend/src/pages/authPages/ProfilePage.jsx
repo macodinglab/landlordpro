@@ -1,26 +1,26 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, Button, Input, Modal } from "../../components";
 import {
-  FiEdit,
-  FiMail,
-  FiPhone,
-  FiCamera,
-  FiUser,
-  FiX,
-  FiArrowLeft,
-  FiCalendar,
-  FiCheckCircle,
-  FiAlertCircle,
-  FiUpload,
-  FiShield,
-  FiLock,
-  FiActivity,
-  FiSettings,
-  FiEye,
-  FiEyeOff,
-  FiClock,
-  FiMapPin
-} from "react-icons/fi";
+  Edit2,
+  Mail,
+  Phone,
+  Camera,
+  User,
+  X,
+  ArrowLeft,
+  Calendar,
+  CheckCircle,
+  AlertCircle,
+  Upload,
+  Shield,
+  Lock,
+  Activity,
+  Settings,
+  Eye,
+  EyeOff,
+  Clock,
+  MapPin
+} from "lucide-react";
 import defaultAvatar from "../../assets/react.svg";
 import { getProfile, updateProfile, uploadAvatar, updatePassword } from "../../services/UserService";
 import { saveLoggedInUser } from "../../services/AuthService";
@@ -46,7 +46,7 @@ const ProfilePage = () => {
   });
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -219,10 +219,10 @@ const ProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-gray-950 border-l border-gray-800/50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading profile...</p>
+          <div className="animate-spin w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-500 font-bold uppercase tracking-widest italic text-[10px]">Synchronizing Identity...</p>
         </div>
       </div>
     );
@@ -230,19 +230,18 @@ const ProfilePage = () => {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-gray-950 border-l border-gray-800/50">
         <div className="text-center">
-          <FiAlertCircle className="mx-auto text-red-500 text-4xl mb-4" />
-          <p className="text-gray-500 mb-4">Failed to load profile</p>
+          <AlertCircle className="mx-auto text-red-500 w-12 h-12 mb-4" />
+          <p className="text-gray-500 mb-4 font-black uppercase italic tracking-widest text-xs font-bold">Failed to load core profile</p>
           <div className="relative z-10">
             <Button
               onClick={handleBack}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+              className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white shadow-lg px-8 py-3 rounded-xl font-black italic uppercase text-xs"
             >
-              <FiArrowLeft /> Go Back
+              <ArrowLeft size={18} /> Return to Portal
             </Button>
           </div>
-
         </div>
       </div>
     );
@@ -252,298 +251,243 @@ const ProfilePage = () => {
   const completionPercentage = calculateCompletion();
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="relative isolate overflow-hidden bg-linear-to-br from-slate-900 via-sky-900 to-indigo-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-            <div className="flex items-start gap-4">
-            <div className="relative z-10">
+    <div className="min-h-screen bg-gray-950 border-l border-gray-800/50">
+      {/* Hero Section */}
+      <div className="relative isolate overflow-hidden bg-gradient-to-br from-teal-950 via-indigo-950 to-slate-950 text-white border-b border-gray-800/50">
+        {/* Abstract shapes */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none opacity-20">
+          <div className="absolute top-[20%] left-[-10%] w-[40%] h-[40%] bg-teal-500 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500 rounded-full blur-[120px]" />
+        </div>
+
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-8 py-16 space-y-8 relative z-10">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
                 <Button
                   onClick={handleBack}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                  className="flex items-center gap-2 bg-gray-800/40 hover:bg-gray-800 text-white backdrop-blur border border-gray-700/50 transition-all font-black uppercase text-[10px] tracking-widest italic px-4 py-2 rounded-xl"
                 >
-                  <FiArrowLeft /> Go Back
+                  <ArrowLeft size={16} /> Return
                 </Button>
+                <div className="px-3 py-1.5 rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20 text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2">
+                  <Shield size={12} /> Verification Level: High
+                </div>
               </div>
 
               <div>
-                <p className="text-xs uppercase tracking-[0.35em] text-white/70">Account Centre</p>
-                <h1 className="text-3xl sm:text-4xl font-semibold mt-2">My Profile</h1>
-                <p className="text-sm text-white/70 mt-2 max-w-lg">
-                  Manage your personal information, security settings, and portfolio preferences in one place.
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-black text-white uppercase italic tracking-tighter leading-none">
+                  User <span className="text-teal-500">Identity</span>
+                </h1>
+                <p className="text-gray-400 text-[11px] font-black uppercase tracking-[0.3em] italic mt-4 flex items-center gap-2">
+                  Credential management and security manifestation
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 min-w-[220px] md:min-w-[320px]">
-              <div className="bg-white/10 backdrop-blur rounded-xl px-4 py-3 border border-white/20">
-                <p className="text-xs text-white/70">Account status</p>
-                <p className="text-lg font-semibold mt-1">{user.is_active ? 'Active' : 'Inactive'}</p>
-                <p className="text-[11px] text-white/60 mt-1">Signed in as {user.role}</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full lg:w-auto">
+              <div className="bg-gray-800/40 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-gray-700/50 shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-125 transition-transform duration-500">
+                  <Activity size={40} className="text-teal-500" />
+                </div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic mb-1">Pulse Status</p>
+                <div className="flex items-center gap-3">
+                  {user.is_active ? <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)] animate-pulse" /> : <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />}
+                  <p className="text-xl sm:text-2xl font-black italic tracking-tighter text-white uppercase">{user.is_active ? 'Nominal' : 'Offline'}</p>
+                </div>
+                <p className="text-[10px] font-black text-teal-400 mt-2 uppercase italic tracking-widest leading-none">{user.role}</p>
               </div>
-              <div className="bg-white/10 backdrop-blur rounded-xl px-4 py-3 border border-white/20">
-                <p className="text-xs text-white/70">Profile completion</p>
-                <p className="text-lg font-semibold mt-1">{completionPercentage}%</p>
-                <p className="text-[11px] text-white/60 mt-1">Complete your contact details</p>
+
+              <div className="bg-gray-800/40 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-gray-700/50 shadow-2xl overflow-hidden group">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic mb-1">Matrix Integrity</p>
+                <div className="flex items-end gap-2">
+                  <p className="text-xl sm:text-2xl font-black italic tracking-tighter text-white leading-none">{completionPercentage}%</p>
+                  <span className="text-[9px] sm:text-[10px] font-black text-gray-500 uppercase italic mb-0.5 tracking-widest">Complete</span>
+                </div>
+
+                <div className="w-full bg-gray-900/50 rounded-full h-1.5 mt-4 overflow-hidden border border-gray-800/30">
+                  <div
+                    className="bg-gradient-to-r from-teal-500 to-indigo-500 h-full rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(20,184,166,0.3)]"
+                    style={{ width: `${completionPercentage}%` }}
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.4)_0,transparent_55%)]" aria-hidden="true" />
       </div>
 
-      <div className="relative z-10 -mt-10 pb-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 space-y-6">
-          <div className="grid lg:grid-cols-3 gap-6">
+      {/* Main Content */}
+      <div className="relative z-10 -mt-12 pb-12">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-8 space-y-8">
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Left Column: Profile Card */}
             <div className="lg:col-span-1 space-y-6">
-              <Card className="p-6 sm:p-7 text-center bg-white shadow-xl rounded-2xl border border-slate-100">
-                <div className="relative inline-block mb-5">
+              <Card className="p-6 sm:p-10 text-center bg-gray-800/40 backdrop-blur-sm shadow-2xl border-gray-700/50 group" hover={false}>
+                <div className="relative inline-block mb-8">
+                  <div className="absolute inset-0 bg-gradient-to-br from-teal-500 to-indigo-600 rounded-full blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
                   <img
                     src={displayAvatar}
                     alt="Profile"
-                    className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-xl mx-auto ring-4 ring-sky-100"
+                    className="w-24 h-24 sm:w-40 sm:h-40 rounded-2xl sm:rounded-[2.5rem] object-cover border-4 border-gray-800 shadow-2xl mx-auto relative z-10 grayscale-[30%] group-hover:grayscale-0 transition-all duration-500"
                     onError={(e) => {
                       e.currentTarget.onerror = null;
                       e.currentTarget.src = defaultAvatar;
                     }}
                   />
-                  <div className="absolute bottom-0 right-0 bg-sky-500 text-white p-2 rounded-full shadow-lg">
-                    <FiUser className="w-5 h-5" />
+                  <div className="absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 z-20 bg-teal-600 text-white p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-xl border-2 sm:border-4 border-gray-900 group-hover:scale-110 transition-transform">
+                    <User className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                 </div>
 
-                <h2 className="text-2xl font-semibold text-slate-900 mb-1">{user.full_name}</h2>
-                <div className="flex items-center justify-center gap-2 mb-6">
-                  <FiShield className="w-4 h-4 text-sky-500" />
-                  <span className="text-sky-600 font-medium capitalize">{user.role}</span>
+                <h2 className="text-3xl font-black text-white italic truncate tracking-tighter mb-1 uppercase">{user.full_name}</h2>
+                <div className="flex items-center justify-center gap-2 mb-10">
+                  <Shield className="w-3.5 h-3.5 text-teal-500" />
+                  <span className="text-teal-400 font-black text-[10px] uppercase tracking-widest italic">{user.role} Matrix</span>
                 </div>
 
-                <div className="flex items-center justify-center gap-2 mb-6">
-                  {user.is_active ? (
-                    <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full">
-                      <FiCheckCircle className="w-4 h-4 text-emerald-600" />
-                      <span className="text-emerald-700 font-medium text-sm">Active</span>
+                <div className="space-y-3 mb-10">
+                  <div className="flex items-center gap-4 p-4 bg-gray-900/50 rounded-2xl border border-gray-700/30 group/row hover:bg-gray-700/30 transition-all">
+                    <div className="p-2 rounded-lg bg-gray-800 text-gray-400 group-hover/row:text-teal-400">
+                      <Mail size={14} />
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-2 bg-rose-50 px-3 py-1.5 rounded-full">
-                      <FiAlertCircle className="w-4 h-4 text-rose-600" />
-                      <span className="text-rose-700 font-medium text-sm">Inactive</span>
+                    <span className="text-[10px] font-black text-gray-500 uppercase italic tracking-wider truncate flex-1 text-left">{user.email}</span>
+                  </div>
+                  <div className="flex items-center gap-4 p-4 bg-gray-900/50 rounded-2xl border border-gray-700/30 group/row hover:bg-gray-700/30 transition-all">
+                    <div className="p-2 rounded-lg bg-gray-800 text-gray-400 group-hover/row:text-teal-400">
+                      <Phone size={14} />
                     </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-2 text-sm text-slate-500 mb-6">
-                  <div className="flex items-center gap-2 justify-center">
-                    <FiMail className="w-4 h-4" />
-                    <span>{user.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 justify-center">
-                    <FiPhone className="w-4 h-4" />
-                    <span>{user.phone || 'No phone number'}</span>
+                    <span className="text-[10px] font-black text-gray-500 uppercase italic tracking-wider truncate flex-1 text-left">{user.phone || 'NONE SPECIFIED'}</span>
                   </div>
                 </div>
 
-                <div className="grid gap-3">
+                <div className="flex flex-col gap-3">
                   <Button
                     onClick={handleEditClick}
-                    className="w-full flex items-center justify-center gap-2 bg-sky-500 hover:bg-sky-600 text-white py-2.5 rounded-lg shadow-sm transition"
+                    className="w-full flex items-center justify-center gap-3 bg-teal-600 hover:bg-teal-500 text-white py-3.5 sm:py-4 rounded-xl shadow-lg transition-all font-black uppercase text-[10px] tracking-widest italic"
                   >
-                    <FiEdit className="w-4 h-4" />
-                    Edit Profile
+                    <Edit2 className="w-4 h-4" />
+                    Modify identity
                   </Button>
 
                   <Button
                     onClick={() => setPasswordModalOpen(true)}
-                    className="w-full flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 py-2.5 rounded-lg border border-slate-200 transition"
+                    className="w-full flex items-center justify-center gap-3 bg-gray-900 border border-gray-700 hover:bg-gray-800 text-gray-400 py-3.5 sm:py-4 rounded-xl transition-all font-black uppercase text-[10px] tracking-widest italic"
                   >
-                    <FiLock className="w-4 h-4" />
-                    Change Password
+                    <Lock className="w-4 h-4" />
+                    Security Override
                   </Button>
                 </div>
               </Card>
 
-              <Card className="p-6 bg-white shadow-md rounded-2xl border border-slate-100">
-                <h3 className="text-lg font-semibold text-slate-900 mb-5 flex items-center gap-2">
-                  <div className="p-2 bg-sky-100 rounded-lg">
-                    <FiActivity className="w-4 h-4 text-sky-500" />
+              {/* Status Card */}
+              <Card className="p-8 bg-gray-800/40 backdrop-blur-sm border-gray-700/50" hover={false}>
+                <h3 className="text-sm font-black text-white italic uppercase tracking-widest mb-6 flex items-center gap-3">
+                  <div className="p-2 bg-indigo-500/10 rounded-lg">
+                    <Activity size={18} className="text-indigo-400" />
                   </div>
-                  Profile Completion
+                  Operational Pulse
                 </h3>
-                <div className="mb-5">
-                  <div className="flex justify-between items-center mb-2 text-sm text-slate-600">
-                    <span>Overall Progress</span>
-                    <span className="text-sky-600 font-semibold">{completionPercentage}%</span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-3">
-                    <div 
-                      className="bg-linear-to-r from-sky-500 to-indigo-500 h-3 rounded-full transition-all duration-500"
-                      style={{ width: `${completionPercentage}%` }}
-                    ></div>
-                  </div>
-                </div>
-                <div className="space-y-2 text-sm text-slate-600">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Basic Information</span>
-                    <span className="text-emerald-500 font-semibold">Complete</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Phone Number</span>
-                    <span className={user.phone ? 'text-emerald-500 font-semibold' : 'text-amber-500 font-semibold'}>
-                      {user.phone ? 'Complete' : 'Missing'}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-gray-900/50 rounded-xl border border-gray-700/20">
+                    <span className="text-[10px] font-black text-gray-500 border-r border-gray-700 pr-4 uppercase italic tracking-widest">Commissioned</span>
+                    <span className="text-[10px] font-black text-white uppercase italic tracking-widest">
+                      {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Profile Photo</span>
-                    <span className={user.avatar && user.avatar !== defaultAvatar ? 'text-emerald-500 font-semibold' : 'text-amber-500 font-semibold'}>
-                      {user.avatar && user.avatar !== defaultAvatar ? 'Complete' : 'Pending'}
+
+                  <div className="flex items-center justify-between p-4 bg-gray-900/50 rounded-xl border border-gray-700/20">
+                    <span className="text-[10px] font-black text-gray-500 border-r border-gray-700 pr-4 uppercase italic tracking-widest">Last Signal</span>
+                    <span className="text-[10px] font-black text-white uppercase italic tracking-widest">
+                      {user.updated_at ? new Date(user.updated_at).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                 </div>
               </Card>
             </div>
 
-            <div className="lg:col-span-2 space-y-6">
-              <Card className="p-6 bg-white shadow-md rounded-2xl border border-slate-100">
-                <h3 className="text-lg font-semibold text-slate-900 mb-5 flex items-center gap-2">
-                  <div className="p-2 bg-sky-100 rounded-lg">
-                    <FiMail className="w-5 h-5 text-sky-500" />
+            {/* Right Column: Details */}
+            <div className="lg:col-span-2 space-y-8">
+
+              {/* Contact Info */}
+              <Card className="p-6 sm:p-10 bg-gray-800/40 backdrop-blur-sm border-gray-700/50" hover={false}>
+                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter mb-8 flex items-center gap-3">
+                  <div className="p-2.5 bg-teal-500/10 rounded-xl">
+                    <User size={24} className="text-teal-400" />
                   </div>
-                  Contact Information
+                  Core Identity Matrix
                 </h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="text-xs uppercase text-slate-500 font-semibold mb-2">Email Address</div>
-                    <p className="text-slate-900 font-medium">{user.email}</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic ml-1">Manifest Name</label>
+                    <div className="p-4 sm:p-5 bg-gray-900/50 rounded-2xl border border-gray-700/30 font-black text-white italic uppercase text-xs sm:text-sm tracking-tight truncate">
+                      {user.full_name}
+                    </div>
                   </div>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="text-xs uppercase text-slate-500 font-semibold mb-2">Phone Number</div>
-                    <p className="text-slate-900 font-medium">{user.phone || 'Not provided'}</p>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic ml-1">Identity UID</label>
+                    <div className="p-4 sm:p-5 bg-gray-900/50 rounded-2xl border border-gray-700/30 font-mono text-[10px] sm:text-xs text-gray-400 truncate">
+                      {user.id}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic ml-1">Communication Channel</label>
+                    <div className="p-4 sm:p-5 bg-gray-900/50 rounded-2xl border border-gray-700/30 font-black text-white italic uppercase text-xs sm:text-sm tracking-tight flex items-center gap-3 overflow-hidden">
+                      <Mail size={16} className="text-gray-600 shrink-0" />
+                      <span className="truncate">{user.email}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic ml-1">Mobile Uplink</label>
+                    <div className="p-4 sm:p-5 bg-gray-900/50 rounded-2xl border border-gray-700/30 font-black text-white italic uppercase text-xs sm:text-sm tracking-tight flex items-center gap-3 truncate">
+                      <Phone size={16} className="text-gray-600 shrink-0" />
+                      {user.phone || <span className="text-gray-600 italic">OFFLINE</span>}
+                    </div>
                   </div>
                 </div>
               </Card>
 
-              <Card className="p-6 bg-white shadow-md rounded-2xl border border-slate-100">
-                <h3 className="text-lg font-semibold text-slate-900 mb-5 flex items-center gap-2">
-                  <div className="p-2 bg-indigo-100 rounded-lg">
-                    <FiCalendar className="w-5 h-5 text-indigo-500" />
+              {/* Security Card */}
+              <Card className="p-6 sm:p-10 bg-gray-800/40 backdrop-blur-sm border-gray-700/50" hover={false}>
+                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter mb-8 flex items-center gap-3">
+                  <div className="p-2.5 bg-indigo-500/10 rounded-xl">
+                    <Shield size={24} className="text-indigo-400" />
                   </div>
-                  Account Details
+                  Defense Parameters
                 </h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="text-xs uppercase text-slate-500 font-semibold mb-2">User ID</div>
-                    <p className="text-slate-900 font-mono text-sm">{user.id?.substring(0, 13)}...</p>
-                  </div>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="text-xs uppercase text-slate-500 font-semibold mb-2">Role</div>
-                    <p className="text-slate-900 font-medium capitalize">{user.role}</p>
-                  </div>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="text-xs uppercase text-slate-500 font-semibold mb-2">Member Since</div>
-                    <p className="text-slate-900 font-medium">
-                      {user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      }) : 'N/A'}
-                    </p>
-                  </div>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="text-xs uppercase text-slate-500 font-semibold mb-2">Last Updated</div>
-                    <p className="text-slate-900 font-medium">
-                      {user.updated_at ? new Date(user.updated_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      }) : 'N/A'}
-                    </p>
-                  </div>
-                </div>
-              </Card>
 
-              <Card className="p-6 bg-white shadow-md rounded-2xl border border-slate-100">
-                <h3 className="text-lg font-semibold text-slate-900 mb-5 flex items-center gap-2">
-                  <div className="p-2 bg-emerald-100 rounded-lg">
-                    <FiLock className="w-5 h-5 text-emerald-500" />
-                  </div>
-                  Password & Security Settings
-                </h3>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-5 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-emerald-100 rounded-lg">
-                        <FiLock className="w-5 h-5 text-emerald-500" />
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 sm:p-6 bg-gray-900/50 rounded-2xl border border-gray-700/30 group/sec hover:bg-gray-700/20 transition-all gap-6">
+                    <div className="flex items-center gap-4 sm:gap-6">
+                      <div className="p-3 sm:p-4 bg-gray-800 rounded-2xl shadow-2xl border border-gray-700/50 group-hover/sec:scale-110 transition-transform shrink-0">
+                        <Lock size={20} className="sm:size-24 text-gray-600 group-hover/sec:text-teal-400" />
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-900">Password</p>
-                        <p className="text-sm text-slate-600">Last changed 30 days ago</p>
+                        <p className="font-black text-white italic uppercase text-xs sm:text-sm tracking-tight">Access Protocol</p>
+                        <p className="text-[9px] sm:text-[10px] font-black text-gray-500 uppercase italic tracking-widest mt-1">Periodic rotation recommended</p>
                       </div>
                     </div>
                     <Button
                       onClick={() => setPasswordModalOpen(true)}
-                      className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-lg shadow-sm transition"
+                      className="w-full sm:w-auto bg-gray-800 border border-gray-700 hover:border-teal-500/50 text-gray-400 hover:text-teal-400 px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest italic transition-all shadow-2xl"
                     >
-                      Change
+                      Override
                     </Button>
                   </div>
-                  <div className="flex items-center justify-between p-5 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-indigo-100 rounded-lg">
-                        <FiShield className="w-5 h-5 text-indigo-500" />
+
+                  <div className="flex items-center justify-between p-6 bg-gray-900/50 rounded-2xl border border-gray-700/10 opacity-40 select-none">
+                    <div className="flex items-center gap-6">
+                      <div className="p-4 bg-gray-800 rounded-2xl border border-gray-700/50">
+                        <Activity size={24} className="text-gray-800" />
                       </div>
                       <div>
-                        <p className="font-semibold text-slate-900">Two-Factor Authentication</p>
-                        <p className="text-sm text-slate-600">Add an extra layer of security</p>
+                        <p className="font-black text-gray-700 italic uppercase text-sm tracking-tight">Biometric Hash</p>
+                        <p className="text-[10px] font-black text-gray-800 uppercase italic tracking-widest mt-1">Experimental feature // Locked</p>
                       </div>
                     </div>
-                    <Button className="bg-white hover:bg-slate-100 text-slate-700 px-5 py-2 rounded-lg border border-slate-200 shadow-sm transition">
-                      Enable
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-6 bg-white shadow-md rounded-2xl border border-slate-100">
-                <h3 className="text-lg font-semibold text-slate-900 mb-5 flex items-center gap-2">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <FiActivity className="w-5 h-5 text-purple-500" />
-                  </div>
-                  Recent Activity Log
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-4 p-4 bg-linear-to-br from-slate-50 to-white rounded-xl border border-slate-100">
-                    <div className="p-2.5 bg-sky-500 text-white rounded-full shrink-0">
-                      <FiSettings className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900">Profile Updated</p>
-                      <p className="text-sm text-slate-600">You updated your profile information</p>
-                      <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                        <FiClock className="w-3 h-3" /> 2 hours ago
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4 p-4 bg-linear-to-br from-emerald-50 to-white rounded-xl border border-emerald-100">
-                    <div className="p-2.5 bg-emerald-500 text-white rounded-full shrink-0">
-                      <FiCheckCircle className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900">Login Successful</p>
-                      <p className="text-sm text-slate-600">Logged in from Chrome on macOS</p>
-                      <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                        <FiClock className="w-3 h-3" /> 1 day ago
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4 p-4 bg-linear-to-br from-indigo-50 to-white rounded-xl border border-indigo-100">
-                    <div className="p-2.5 bg-indigo-500 text-white rounded-full shrink-0">
-                      <FiShield className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900">Security Settings Changed</p>
-                      <p className="text-sm text-slate-600">Password updated successfully</p>
-                      <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                        <FiClock className="w-3 h-3" /> 3 days ago
-                      </p>
+                    <div className="px-4 py-2 bg-gray-800 rounded-xl text-[9px] font-black text-gray-600 uppercase italic tracking-widest border border-gray-700/30">
+                      Restricted
                     </div>
                   </div>
                 </div>
@@ -560,36 +504,24 @@ const ProfilePage = () => {
           onClose={handleCloseModal}
           onSubmit={handleSave}
           submitDisabled={saving || uploadingAvatar}
-          submitText={
-            saving ? "Saving Changes..." :
-            uploadingAvatar ? "Uploading Avatar..." :
-            "Save Changes"
-          }
         >
           <div className="space-y-6">
             {/* Avatar Upload */}
-            <div className="flex flex-col items-center gap-4">
-              <div className="relative">
+            <div className="flex flex-col items-center gap-6 py-6 border-b border-gray-800/50 mb-6">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-teal-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
                 <img
                   src={avatarPreview || resolveAvatarUrl(editData.avatar)}
                   alt="Preview"
-                  className="w-28 h-28 rounded-full object-cover border-4 border-blue-100 shadow-lg"
+                  className="w-40 h-40 rounded-[2.5rem] object-cover border-4 border-gray-800 shadow-2xl relative z-10 grayscale-[20%] group-hover:grayscale-0 transition-all"
                   onError={(e) => {
                     e.currentTarget.onerror = null;
                     e.currentTarget.src = defaultAvatar;
                   }}
                 />
-                {avatarPreview && (
-                  <button
-                    onClick={handleRemovePreview}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition shadow-lg"
-                    title="Remove new photo"
-                  >
-                    <FiX className="w-4 h-4" />
-                  </button>
-                )}
-                <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-2.5 rounded-full cursor-pointer hover:bg-blue-700 transition shadow-lg">
-                  <FiCamera className="w-5 h-5" />
+
+                <label className="absolute -bottom-2 -right-2 z-20 bg-teal-600 text-white p-4 rounded-2xl cursor-pointer hover:bg-teal-500 transition-all shadow-xl border-4 border-gray-900 hover:scale-110">
+                  <Camera size={20} />
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/jpg,image/gif"
@@ -598,9 +530,18 @@ const ProfilePage = () => {
                   />
                 </label>
               </div>
-              <p className="text-xs text-gray-500 text-center">
-                JPG, PNG, GIF (Max 5MB)
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                Max 5MB (JPG, PNG)
               </p>
+
+              {avatarPreview && (
+                <button
+                  onClick={handleRemovePreview}
+                  className="text-red-500 text-sm font-bold hover:underline"
+                >
+                  Remove selected image
+                </button>
+              )}
             </div>
 
             {/* Form Fields */}
@@ -610,7 +551,7 @@ const ProfilePage = () => {
                 value={editData.full_name || ''}
                 onChange={(e) => setEditData({ ...editData, full_name: e.target.value })}
                 required
-                placeholder="Enter your full name"
+                placeholder="e.g. John Doe"
               />
               <Input
                 label="Email Address"
@@ -618,13 +559,13 @@ const ProfilePage = () => {
                 value={editData.email || ''}
                 onChange={(e) => setEditData({ ...editData, email: e.target.value })}
                 required
-                placeholder="your.email@example.com"
+                placeholder="name@example.com"
               />
               <Input
                 label="Phone Number"
                 value={editData.phone || ''}
                 onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                placeholder="+1234567890 (optional)"
+                placeholder="+1 234 567 890"
               />
             </div>
           </div>
@@ -634,7 +575,7 @@ const ProfilePage = () => {
       {/* Change Password Modal */}
       {passwordModalOpen && (
         <Modal
-          title="Change Password"
+          title="Security Override"
           onClose={() => {
             setPasswordModalOpen(false);
             setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -642,90 +583,69 @@ const ProfilePage = () => {
           }}
           onSubmit={handlePasswordChange}
           submitDisabled={saving}
-          submitText={saving ? "Changing..." : "Change Password"}
         >
-          <div className="space-y-4">
-            <div className="relative">
-              <Input
-                label="Current Password"
-                type={showPasswords.current ? "text" : "password"}
-                value={passwordData.currentPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                required
-                placeholder="Enter current password"
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
-                className="absolute right-3 top-9 text-gray-400 hover:text-gray-600 transition"
-              >
-                {showPasswords.current ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
-              </button>
+          <div className="space-y-6">
+            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-6 flex gap-4">
+              <Shield className="w-6 h-6 text-indigo-400 flex-shrink-0" />
+              <div>
+                <p className="text-[10px] font-black text-indigo-300 mb-1 uppercase tracking-widest italic">Cryptographic Requirement</p>
+                <p className="text-[11px] font-black text-indigo-400/80 uppercase italic leading-relaxed">Identity must exceed 8 characters with multi-case and alphanumeric markers.</p>
+              </div>
             </div>
 
-            <div className="relative">
-              <Input
-                label="New Password"
-                type={showPasswords.new ? "text" : "password"}
-                value={passwordData.newPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                required
-                placeholder="Enter new password (min 8 chars)"
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
-                className="absolute right-3 top-9 text-gray-400 hover:text-gray-600 transition"
-              >
-                {showPasswords.new ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
-              </button>
-            </div>
+            <div className="space-y-4">
+              <div className="relative">
+                <Input
+                  label="Current Password"
+                  type={showPasswords.current ? "text" : "password"}
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                  required
+                  placeholder="Enter current password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                  className="absolute right-4 top-[38px] text-gray-400 hover:text-violet-600 transition"
+                >
+                  {showPasswords.current ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
 
-            <div className="relative">
-              <Input
-                label="Confirm New Password"
-                type={showPasswords.confirm ? "text" : "password"}
-                value={passwordData.confirmPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                required
-                placeholder="Confirm new password"
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
-                className="absolute right-3 top-9 text-gray-400 hover:text-gray-600 transition"
-              >
-                {showPasswords.confirm ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
-              </button>
-            </div>
+              <div className="relative">
+                <Input
+                  label="New Password"
+                  type={showPasswords.new ? "text" : "password"}
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                  required
+                  placeholder="Min 8 characters"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                  className="absolute right-4 top-[38px] text-gray-400 hover:text-violet-600 transition"
+                >
+                  {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <FiShield className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-blue-900 mb-2">Password Requirements:</p>
-                  <ul className="text-xs text-blue-800 space-y-1.5">
-                    <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
-                      At least 8 characters long
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
-                      Include uppercase and lowercase letters
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
-                      Include at least one number
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
-                      Include at least one special character
-                    </li>
-                  </ul>
-                </div>
+              <div className="relative">
+                <Input
+                  label="Confirm New Password"
+                  type={showPasswords.confirm ? "text" : "password"}
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  required
+                  placeholder="Repeat new password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                  className="absolute right-4 top-[38px] text-gray-400 hover:text-violet-600 transition"
+                >
+                  {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
             </div>
           </div>

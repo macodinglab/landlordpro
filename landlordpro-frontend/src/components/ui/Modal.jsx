@@ -1,37 +1,63 @@
 import React from 'react';
-import { FiX } from 'react-icons/fi';
+import { X, Shield, Activity } from 'lucide-react';
 
-const Modal = ({ title, children, onClose, onSubmit }) => {
+const Modal = ({ title, children, onClose, onSubmit, className = '' }) => {
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md relative animate-fadeIn">
-        {/* Header */}
-        <div className="flex justify-between items-center border-b px-5 py-3">
-          <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+      {/* Backdrop with extreme blur and technical overlay */}
+      <div
+        className="absolute inset-0 bg-slate-950/40 backdrop-blur-2xl animate-fade-in"
+        onClick={onClose}
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(139,92,246,0.1),transparent_70%)] opacity-50"></div>
+      </div>
+
+      {/* Modal Container */}
+      <div
+        className={`relative w-full ${className} bg-white/70 dark:bg-gray-900/70 backdrop-blur-3xl rounded-[2.5rem] md:rounded-[3.5rem] shadow-[0_32px_128px_-16px_rgba(0,0,0,0.3)] border border-white/40 dark:border-white/10 overflow-hidden animate-zoom-in group/modal`}
+      >
+        {/* Technical Header Stripe */}
+        <div className="absolute top-0 inset-x-0 h-1.5 bg-linear-to-r from-violet-600 via-indigo-500 to-violet-600 opacity-50"></div>
+
+        {/* Modal Header */}
+        <div className="relative px-8 md:px-12 pt-10 pb-6 flex justify-between items-start border-b border-gray-100 dark:border-white/5">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 text-[10px] font-black text-violet-500 uppercase tracking-[0.3em] italic">
+              <Activity size={12} className="animate-pulse" /> Command Console
+            </div>
+            <h2 className="text-2xl md:text-3xl font-black text-gray-950 dark:text-white tracking-tighter uppercase italic leading-none">{title}</h2>
+          </div>
+
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition"
+            className="p-3 bg-gray-100 dark:bg-white/5 hover:bg-rose-500 hover:text-white dark:hover:bg-rose-500 text-gray-400 rounded-2xl transition-all duration-300 hover:rotate-90 active:scale-95 shadow-sm group/close"
           >
-            <FiX size={20} />
+            <X size={20} className="group-hover/close:scale-110" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-5 space-y-4">{children}</div>
+        {/* Modal Content - Scrollable with custom scrollbar */}
+        <div className="relative px-8 md:px-12 py-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+          {children}
+        </div>
 
-        {/* Footer */}
-        <div className="flex justify-end gap-2 border-t px-5 py-3 bg-gray-50">
+        {/* Modal Footer */}
+        <div className="relative px-8 md:px-12 py-8 flex flex-col sm:flex-row justify-end gap-4 bg-gray-50/50 dark:bg-white/[0.02] border-t border-gray-100 dark:border-white/5">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100"
+            className="px-10 py-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 rounded-[1.5rem] font-black uppercase text-[11px] tracking-widest hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95 italic"
           >
             Cancel
           </button>
           <button
             onClick={onSubmit}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+            className="group/save relative px-12 py-5 bg-violet-600 hover:bg-violet-700 text-white rounded-[1.5rem] font-black uppercase text-[11px] tracking-widest shadow-2xl shadow-violet-500/20 transition-all hover:scale-105 active:scale-95 overflow-hidden italic"
           >
-            Save
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              <Shield size={16} className="group-hover/save:rotate-12 transition-transform" />
+              Save
+            </span>
+            <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/save:translate-x-full transition-transform duration-1000"></div>
           </button>
         </div>
       </div>

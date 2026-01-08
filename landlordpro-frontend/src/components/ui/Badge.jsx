@@ -4,7 +4,7 @@ import React from 'react';
 const Badge = ({ className = '', text, ...props }) => {
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${className}`}
+      className={`inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black uppercase italic tracking-widest border border-current shadow-sm ${className}`}
       {...props}
     >
       {text}

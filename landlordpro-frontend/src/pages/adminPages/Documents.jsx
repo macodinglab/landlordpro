@@ -4,19 +4,23 @@ import { getAllPayments, getPaymentProofUrl } from '../../services/paymentServic
 import { getAllProperties } from '../../services/propertyService';
 import { Button, Input, Card, Select, Modal } from '../../components';
 import {
-  FiDownload,
-  FiPrinter,
-  FiFileText,
-  FiPaperclip,
-  FiDollarSign,
-  FiSearch,
-  FiFilter,
-  FiChevronDown,
-  FiChevronUp,
-  FiX,
-  FiChevronLeft,
-  FiChevronRight,
-} from 'react-icons/fi';
+  Download,
+  Printer,
+  FileText,
+  Paperclip,
+  Search,
+  Filter,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Activity,
+  Zap,
+  Archive,
+  ClipboardList,
+  Calendar,
+  Building,
+  Eye
+} from 'lucide-react';
 import { showError, showSuccess } from '../../utils/toastHelper';
 
 const Documents = () => {
@@ -24,10 +28,8 @@ const Documents = () => {
   const [payments, setPayments] = useState([]);
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedItems, setSelectedItems] = useState([]);
   const [activeTab, setActiveTab] = useState('expenses');
   const [showFilters, setShowFilters] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [proofModalOpen, setProofModalOpen] = useState(false);
   const [proofUrl, setProofUrl] = useState('');
 
@@ -42,300 +44,182 @@ const Documents = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  // Handle responsive layout
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth >= 768) {
-        setShowFilters(false);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, filterProperty, filterStatus, dateFrom, dateTo, activeTab]);
 
-  // Helper to escape HTML
   const escapeHtml = (text) => {
     if (!text) return '';
-    const map = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;'
-    };
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
     return String(text).replace(/[&<>"']/g, m => map[m]);
   };
 
-  // Helper to get full proof URL for payments
   const getFullPaymentProofUrl = (payment) => {
     if (!payment) return null;
-
     const proofField = payment.proof || payment.proofUrl || payment.proofFilename || payment.attachment || payment.proof_url;
-    
     if (!proofField) return null;
-    
-    if (typeof proofField === 'string' && proofField.startsWith('http')) {
-      return proofField;
-    }
-    
-    if (typeof proofField === 'string' && proofField.startsWith('/uploads')) {
-      return `${import.meta.env.VITE_API_BASE_URL}${proofField}`;
-    }
-    
+    if (typeof proofField === 'string' && proofField.startsWith('http')) return proofField;
+    if (typeof proofField === 'string' && proofField.startsWith('/uploads')) return `${import.meta.env.VITE_API_BASE_URL}${proofField}`;
     if (payment.id && typeof proofField === 'string') {
       try {
         return getPaymentProofUrl(payment.id, proofField);
       } catch (error) {
-        console.error('Error constructing payment proof URL:', error);
         return null;
       }
     }
-    
     return null;
   };
 
-  // Helper to get full proof URL for expenses
   const getFullExpenseProofUrl = (expense) => {
     if (!expense || !expense.proof) return null;
-    
-    if (expense.proof.startsWith('http')) {
-      return expense.proof;
-    }
-    
-    if (expense.proof.startsWith('/uploads')) {
-      return `${import.meta.env.VITE_API_BASE_URL}${expense.proof}`;
-    }
-    
+    if (expense.proof.startsWith('http')) return expense.proof;
+    if (expense.proof.startsWith('/uploads')) return `${import.meta.env.VITE_API_BASE_URL}${expense.proof}`;
     return `${import.meta.env.VITE_API_BASE_URL}/api/expenses/${expense.id}/proof/${expense.proof}`;
   };
 
-  // Fetch payments
   const fetchPayments = useCallback(async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       const data = await getAllPayments(searchTerm);
       let filteredData = Array.isArray(data) ? data : [];
-
-      if (dateFrom) {
-        filteredData = filteredData.filter(p => new Date(p.startDate) >= new Date(dateFrom));
-      }
-      if (dateTo) {
-        filteredData = filteredData.filter(p => new Date(p.endDate) <= new Date(dateTo));
-      }
-
+      if (dateFrom) filteredData = filteredData.filter(p => new Date(p.startDate) >= new Date(dateFrom));
+      if (dateTo) filteredData = filteredData.filter(p => new Date(p.endDate) <= new Date(dateTo));
       setPayments(filteredData);
     } catch (err) {
-      showError(err?.message || 'Failed to load payments');
-      setPayments([]);
+      showError('Failed to sync payment signals.');
     } finally {
       setLoading(false);
     }
   }, [searchTerm, dateFrom, dateTo]);
 
-  // Fetch expenses
   const fetchExpenses = useCallback(async () => {
-    setLoading(true);
     try {
-      const res = await getAllExpenses({
-        page: 1,
-        limit: 1000,
-        propertyId: filterProperty,
-        search: searchTerm,
-      });
-
+      setLoading(true);
+      const res = await getAllExpenses({ page: 1, limit: 1000, propertyId: filterProperty, search: searchTerm });
       let filteredData = Array.isArray(res?.data) ? res.data : [];
-
-      if (filterStatus) {
-        filteredData = filteredData.filter(e => e.payment_status === filterStatus);
-      }
-      if (dateFrom) {
-        filteredData = filteredData.filter(e => new Date(e.date) >= new Date(dateFrom));
-      }
-      if (dateTo) {
-        filteredData = filteredData.filter(e => new Date(e.date) <= new Date(dateTo));
-      }
-
+      if (filterStatus) filteredData = filteredData.filter(e => e.payment_status === filterStatus);
+      if (dateFrom) filteredData = filteredData.filter(e => new Date(e.date) >= new Date(dateFrom));
+      if (dateTo) filteredData = filteredData.filter(e => new Date(e.date) <= new Date(dateTo));
       setExpenses(filteredData);
     } catch (err) {
-      showError(err?.message || 'Failed to load expenses');
-      setExpenses([]);
+      showError('Failed to sync expense spectrum.');
     } finally {
       setLoading(false);
     }
   }, [filterProperty, searchTerm, filterStatus, dateFrom, dateTo]);
 
-  // Fetch properties
   useEffect(() => {
-    const fetchProperties = async () => {
+    const fetchProps = async () => {
       try {
         const { properties: props } = await getAllProperties();
         setProperties(Array.isArray(props) ? props : []);
       } catch (err) {
-        showError(err?.message || 'Failed to load properties');
+        showError('Failed to load property nodes.');
       }
     };
-    fetchProperties();
+    fetchProps();
   }, []);
 
-  // Fetch data
   useEffect(() => {
-    if (activeTab === 'expenses') {
-      fetchExpenses();
-    } else {
-      fetchPayments();
-    }
+    if (activeTab === 'expenses') fetchExpenses();
+    else fetchPayments();
   }, [activeTab, fetchExpenses, fetchPayments]);
 
-  // Proof modal handler
   const handleViewProof = (url) => {
     if (!url) {
-      showError('No proof available for this document');
+      showError('No validation proof isolated for this node.');
       return;
     }
     setProofUrl(url);
     setProofModalOpen(true);
   };
 
-  // ✅ FIXED: Invoice generator with correct VAT calculation
   const generateExpenseInvoice = (expense) => {
     const property = properties.find(p => p.id === expense.property_id);
-    
-    // NEW VAT CALCULATION: amount already includes VAT
     const total = parseFloat(expense.amount || 0);
-    const vatAmount = total - (total / 1.18); // Extract 18% VAT
-    const subtotal = total - vatAmount; // Amount without VAT
-    
+    const vatAmount = total - (total / 1.18);
+    const subtotal = total - vatAmount;
+
     return `
       <!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Expense Invoice - ${escapeHtml(expense.reference_number || expense.id)}</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: Arial, sans-serif; padding: 40px; background: #f5f5f5; }
-          .invoice-container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-radius: 8px; }
-          .header { display: flex; justify-content: space-between; align-items: start; border-bottom: 3px solid #10b981; padding-bottom: 20px; margin-bottom: 30px; flex-wrap: wrap; gap: 20px; }
-          .company-info h1 { color: #10b981; font-size: 28px; margin-bottom: 5px; font-weight: 700; }
-          .company-info p { color: #666; font-size: 14px; margin: 2px 0; }
-          .invoice-info { text-align: right; min-width: 250px; }
-          .invoice-info h2 { color: #333; font-size: 24px; margin-bottom: 10px; font-weight: 700; }
-          .invoice-info p { color: #666; font-size: 14px; line-height: 1.8; margin: 4px 0; }
-          .status-badge { display: inline-block; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-          .status-paid { background: #d1fae5; color: #065f46; }
-          .status-pending { background: #fef3c7; color: #92400e; }
-          .status-overdue { background: #fee2e2; color: #991b1b; }
-          .details { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px; margin-bottom: 40px; padding: 20px; background: #f9fafb; border-radius: 6px; }
-          .details-section h3 { color: #10b981; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
-          .details-section p { color: #666; font-size: 14px; line-height: 1.8; margin: 2px 0; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-          thead { background: #f9fafb; }
-          th { text-align: left; padding: 14px 12px; font-size: 13px; color: #374151; border-bottom: 2px solid #e5e7eb; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
-          td { padding: 14px 12px; font-size: 14px; color: #666; border-bottom: 1px solid #e5e7eb; }
-          .text-right { text-align: right; }
-          .totals { margin-left: auto; width: 350px; margin-top: 20px; }
-          .totals tr td { padding: 10px 12px; font-size: 15px; }
-          .totals tr:last-child { border-top: 2px solid #10b981; font-weight: 700; font-size: 18px; }
-          .totals tr:last-child td { color: #10b981; padding-top: 15px; }
-          .notes { background: #f0fdf4; padding: 20px; border-left: 4px solid #10b981; margin: 30px 0; border-radius: 4px; }
-          .notes h4 { color: #333; font-size: 14px; margin-bottom: 10px; font-weight: 600; }
-          .notes p { color: #666; font-size: 14px; line-height: 1.8; }
-          .footer { margin-top: 50px; padding-top: 20px; border-top: 2px solid #e5e7eb; text-align: center; color: #999; font-size: 12px; }
-          @media print { body { padding: 0; background: white; } .invoice-container { box-shadow: none; border-radius: 0; } }
-          @media (max-width: 768px) { body { padding: 20px; } .invoice-container { padding: 20px; } .header { flex-direction: column; } .invoice-info { text-align: left; } .details { grid-template-columns: 1fr; } .totals { width: 100%; } }
+          body { font-family: 'Inter', sans-serif; padding: 40px; background: #fff; color: #1e293b; }
+          .header { border-bottom: 4px solid #0f172a; padding-bottom: 30px; margin-bottom: 40px; display: flex; justify-content: space-between; }
+          .title { font-size: 32px; font-weight: 900; text-transform: uppercase; letter-spacing: -1.5px; italic; }
+          .meta { text-align: right; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+          .section-title { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; margin-bottom: 10px; }
+          .content { font-size: 14px; font-weight: 600; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+          th { padding: 15px; background: #f8fafc; text-align: left; font-size: 10px; font-weight: 900; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
+          td { padding: 15px; font-size: 14px; font-weight: 600; border-bottom: 1px solid #f1f5f9; }
+          .totals { margin-left: auto; width: 300px; }
+          .total-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+          .grand-total { border-top: 3px solid #0f172a; padding-top: 15px; font-size: 18px; font-weight: 900; }
+          .footer { margin-top: 80px; text-align: center; font-size: 10px; font-weight: 800; color: #cbd5e1; text-transform: uppercase; letter-spacing: 1px; }
         </style>
       </head>
       <body>
-        <div class="invoice-container">
-          <div class="header">
-            <div class="company-info">
-              <h1>Property Management</h1>
-              <p>Expense Invoice</p>
-            </div>
-            <div class="invoice-info">
-              <h2>EXPENSE INVOICE</h2>
-              <p><strong>Invoice #:</strong> ${escapeHtml(expense.reference_number || expense.id?.substring(0, 8) || 'N/A')}</p>
-              <p><strong>Date:</strong> ${expense.date ? new Date(expense.date).toLocaleDateString() : 'N/A'}</p>
-              ${expense.due_date ? `<p><strong>Due Date:</strong> ${new Date(expense.due_date).toLocaleDateString()}</p>` : ''}
-              <p style="margin-top: 12px;">
-                <span class="status-badge status-${expense.payment_status || 'pending'}">
-                  ${escapeHtml((expense.payment_status || 'pending').toUpperCase())}
-                </span>
-              </p>
-            </div>
+        <div class="header">
+          <div>
+             <div class="section-title">Corporate Unit</div>
+             <div class="title">Expenditure Invoice</div>
           </div>
-
-          <div class="details">
-            <div class="details-section">
-              <h3>Property</h3>
-              ${property ? `
-                <p><strong>${escapeHtml(property.name)}</strong></p>
-                ${property.address ? `<p>${escapeHtml(property.address)}</p>` : ''}
-              ` : '<p>No property information</p>'}
-            </div>
-            
-            ${expense.vendor_name ? `
-            <div class="details-section">
-              <h3>Vendor</h3>
-              <p><strong>${escapeHtml(expense.vendor_name)}</strong></p>
-              ${expense.vendor_contact ? `<p>${escapeHtml(expense.vendor_contact)}</p>` : ''}
-            </div>
-            ` : ''}
+          <div class="meta">
+            <div>Ref: ${escapeHtml(expense.reference_number || expense.id?.substring(0, 8))}</div>
+            <div>Date: ${expense.date ? new Date(expense.date).toLocaleDateString() : 'N/A'}</div>
           </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th>Category</th>
-                <th class="text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>${escapeHtml(expense.description || 'Expense')}</td>
-                <td>${escapeHtml(expense.category || 'Uncategorized')}</td>
-                <td class="text-right">${expense.currency || 'FRW'} ${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <table class="totals">
+        </div>
+        <div class="grid">
+          <div>
+            <div class="section-title">Origin Node (Property)</div>
+            <div class="content">${property ? escapeHtml(property.name) : 'GLOBAL_ARRAY'}</div>
+            <div class="content" style="color: #64748b; font-size: 12px; margin-top: 4px;">${property?.address || '-'}</div>
+          </div>
+          <div>
+            <div class="section-title">Destination Entity (Vendor)</div>
+            <div class="content">${escapeHtml(expense.vendor_name || 'UNDEFINED')}</div>
+            <div class="content" style="color: #64748b; font-size: 12px; margin-top: 4px;">${expense.vendor_contact || '-'}</div>
+          </div>
+        </div>
+        <table>
+          <thead>
             <tr>
-              <td>Subtotal (Excl. VAT):</td>
-              <td class="text-right">${expense.currency || 'FRW'} ${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <th>Description</th>
+              <th>Category</th>
+              <th style="text-align: right">Valuation</th>
             </tr>
+          </thead>
+          <tbody>
             <tr>
-              <td>VAT (18%):</td>
-              <td class="text-right">${expense.currency || 'FRW'} ${vatAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              <td>${escapeHtml(expense.description || 'Corporate Expense')}</td>
+              <td>${escapeHtml(expense.category || 'N/A')}</td>
+              <td style="text-align: right">FRW ${subtotal.toLocaleString()}</td>
             </tr>
-            <tr>
-              <td>TOTAL (Incl. VAT):</td>
-              <td class="text-right">${expense.currency || 'FRW'} ${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            </tr>
-          </table>
-
-          ${expense.notes ? `
-          <div class="notes">
-            <h4>Notes</h4>
-            <p>${escapeHtml(expense.notes)}</p>
+          </tbody>
+        </table>
+        <div class="totals">
+          <div class="total-row">
+            <span class="section-title">Base Load</span>
+            <span class="content">FRW ${subtotal.toLocaleString()}</span>
           </div>
-          ` : ''}
-
-          <div class="footer">
-            <p>Generated on ${new Date().toLocaleString()}</p>
-            <p style="margin-top: 10px; font-size: 11px; color: #bbb;">
-              This is a computer-generated document. No signature is required.
-            </p>
+          <div class="total-row">
+            <span class="section-title">VAT (18%)</span>
+            <span class="content">FRW ${vatAmount.toLocaleString()}</span>
           </div>
+          <div class="total-row grand-total">
+             <span class="section-title" style="color: #0f172a">Net Aggregate</span>
+             <span style="color: #0f172a">FRW ${total.toLocaleString()}</span>
+          </div>
+        </div>
+        <div class="footer">
+          Computerized Logic Output • No physical signature required • Authenticated by LandlordPro Matrix
         </div>
       </body>
       </html>
@@ -348,100 +232,71 @@ const Documents = () => {
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Payment Receipt - ${payment.id}</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: Arial, sans-serif; padding: 40px; background: #f5f5f5; }
-          .receipt-container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-radius: 8px; }
-          .header { display: flex; justify-content: space-between; align-items: start; border-bottom: 3px solid #3b82f6; padding-bottom: 20px; margin-bottom: 30px; flex-wrap: wrap; gap: 20px; }
-          .company-info h1 { color: #3b82f6; font-size: 28px; margin-bottom: 5px; font-weight: 700; }
-          .company-info p { color: #666; font-size: 14px; }
-          .receipt-info { text-align: right; min-width: 250px; }
-          .receipt-info h2 { color: #333; font-size: 24px; margin-bottom: 10px; font-weight: 700; }
-          .receipt-info p { color: #666; font-size: 14px; line-height: 1.8; }
-          .details { background: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
-          .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
-          .detail-row:last-child { border-bottom: none; }
-          .detail-label { color: #666; font-size: 14px; }
-          .detail-value { color: #333; font-size: 14px; font-weight: 600; }
-          .amount-box { background: #3b82f6; color: white; padding: 20px; text-align: center; border-radius: 8px; margin: 30px 0; }
-          .amount-box p { font-size: 14px; margin-bottom: 10px; opacity: 0.9; }
-          .amount-box h3 { font-size: 36px; font-weight: bold; }
-          .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #e5e7eb; text-align: center; color: #999; font-size: 12px; }
-          @media print { body { padding: 0; background: white; } .receipt-container { box-shadow: none; border-radius: 0; } }
+          body { font-family: 'Inter', sans-serif; padding: 60px; background: #fff; color: #1e293b; }
+          .header { border-left: 8px solid #0f172a; padding-left: 30px; margin-bottom: 60px; }
+          .title { font-size: 40px; font-weight: 900; text-transform: uppercase; letter-spacing: -2px; }
+          .meta { font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px; margin-top: 5px; }
+          .amount-hero { background: #f8fafc; padding: 40px; border-radius: 20px; text-align: center; margin-bottom: 40px; border: 1px solid #e2e8f0; }
+          .amount-label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; color: #64748b; margin-bottom: 10px; }
+          .amount-value { font-size: 48px; font-weight: 900; color: #0f172a; letter-spacing: -2px; }
+          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; }
+          .info-block { border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; }
+          .label { font-size: 9px; font-weight: 900; text-transform: uppercase; color: #94a3b8; letter-spacing: 1px; margin-bottom: 5px; }
+          .value { font-size: 14px; font-weight: 700; color: #1e293b; }
+          .footer { margin-top: 100px; border-top: 1px solid #f1f5f9; padding-top: 20px; text-align: center; font-size: 9px; font-weight: 800; color: #cbd5e1; text-transform: uppercase; letter-spacing: 1px; }
         </style>
       </head>
       <body>
-        <div class="receipt-container">
-          <div class="header">
-            <div class="company-info">
-              <h1>Property Management</h1>
-              <p>Payment Receipt</p>
-            </div>
-            <div class="receipt-info">
-              <h2>RECEIPT</h2>
-              <p><strong>Receipt #:</strong> ${payment.id?.substring(0, 8)?.toUpperCase() || 'N/A'}</p>
-              <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-            </div>
-          </div>
-
-          <div class="amount-box">
-            <p>Amount Paid</p>
-            <h3>FRW ${parseFloat(payment.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-          </div>
-
-          <div class="details">
-            <div class="detail-row">
-              <span class="detail-label">Payment Period:</span>
-              <span class="detail-value">${payment.startDate ? new Date(payment.startDate).toLocaleDateString() : 'N/A'} - ${payment.endDate ? new Date(payment.endDate).toLocaleDateString() : 'N/A'}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Lease ID:</span>
-              <span class="detail-value">${payment.leaseId || 'N/A'}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment Mode:</span>
-              <span class="detail-value">${payment.paymentMode?.name || 'N/A'}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Created:</span>
-              <span class="detail-value">${payment.createdAt ? new Date(payment.createdAt).toLocaleString() : 'N/A'}</span>
-            </div>
-          </div>
-
-          <div class="footer">
-            <p>Thank you for your payment!</p>
-            <p>Generated on ${new Date().toLocaleString()}</p>
-            <p style="margin-top: 10px; font-size: 11px; color: #bbb;">
-              This is a computer-generated document. No signature is required.
-            </p>
-          </div>
+        <div class="header">
+          <div class="title">Fiscal Receipt</div>
+          <div class="meta">Node Identification: ${payment.id?.substring(0, 8)?.toUpperCase()} • ${new Date().toLocaleDateString()}</div>
+        </div>
+        <div class="amount-hero">
+           <div class="amount-label">Verified Credit Vector</div>
+           <div class="amount-value">FRW ${parseFloat(payment.amount || 0).toLocaleString()}</div>
+        </div>
+        <div class="grid">
+           <div class="info-block">
+              <div class="label">Temporal Range</div>
+              <div class="value">${new Date(payment.startDate).toLocaleDateString()} — ${new Date(payment.endDate).toLocaleDateString()}</div>
+           </div>
+           <div class="info-block">
+              <div class="label">Origin Lease</div>
+              <div class="value">SIGNAL_${payment.leaseId?.substring(0, 8)?.toUpperCase()}</div>
+           </div>
+           <div class="info-block">
+              <div class="label">Gateway Protocol</div>
+              <div class="value">${payment.paymentMode?.name || 'GENERIC'}</div>
+           </div>
+           <div class="info-block">
+              <div class="label">Injection Time</div>
+              <div class="value">${new Date(payment.createdAt).toLocaleString()}</div>
+           </div>
+        </div>
+        <div class="footer">
+           Authenticated Transaction • Non-Repudiation Guaranteed • LandlordPro Financial Grid
         </div>
       </body>
       </html>
     `;
   };
 
-  // Print Document
   const handlePrint = (item, type) => {
     const printWindow = window.open('', '_blank');
     const html = type === 'expense' ? generateExpenseInvoice(item) : generatePaymentReceipt(item);
-    
     if (!printWindow) {
-      showError('Please allow popups to print documents');
+      showError('Interface blocked by popup security. Enable popups for document output.');
       return;
     }
-    
     printWindow.document.write(html);
     printWindow.document.close();
     printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
+    setTimeout(() => { printWindow.print(); }, 250);
   };
 
-  // Download Document
   const handleDownload = (item, type) => {
     const html = type === 'expense' ? generateExpenseInvoice(item) : generatePaymentReceipt(item);
     const blob = new Blob([html], { type: 'text/html' });
@@ -453,649 +308,304 @@ const Documents = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showSuccess('Document downloaded successfully!');
+    showSuccess('Binary document extracted to local storage.');
   };
-
-  // Toggle selections
-  const toggleSelection = (id) => {
-    setSelectedItems(prev =>
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  };
-
-  const toggleSelectAll = () => {
-    const items = paginatedItems;
-    if (selectedItems.length === items.length && items.length > 0) {
-      setSelectedItems([]);
-    } else {
-      setSelectedItems(items.map(i => i.id).filter(Boolean));
-    }
-  };
-
-  // Options
-  const propertyOptions = [
-    { value: '', label: '— All Properties —' },
-    ...properties.map(p => ({ value: p.id, label: p.name })),
-  ];
-
-  const statusOptions = [
-    { value: '', label: '— All Status —' },
-    { value: 'paid', label: 'Paid' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'overdue', label: 'Overdue' },
-  ];
-
-  const itemsPerPageOptions = [
-    { value: 10, label: '10 per page' },
-    { value: 25, label: '25 per page' },
-    { value: 50, label: '50 per page' },
-    { value: 100, label: '100 per page' },
-  ];
-
-  // ✅ FIXED: Summary calculations with correct VAT
-  const expenseSummary = useMemo(() => {
-    const total = expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
-    const withProof = expenses.filter(e => e.proof).length;
-    return { total, count: expenses.length, withProof };
-  }, [expenses]);
-
-  const paymentSummary = useMemo(() => {
-    const total = payments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-    const withProof = payments.filter(p => 
-      p.proof || p.proofUrl || p.proofFilename || p.attachment
-    ).length;
-    return { total, count: payments.length, withProof };
-  }, [payments]);
 
   const currentItems = activeTab === 'expenses' ? expenses : payments;
-  const currentSummary = activeTab === 'expenses' ? expenseSummary : paymentSummary;
-
-  // ✅ PAGINATION LOGIC
-  const totalPages = Math.ceil(currentItems.length / itemsPerPage);
+  const totalPages = Math.ceil(currentItems.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedItems = currentItems.slice(startIndex, endIndex);
+  const paginatedItems = currentItems.slice(startIndex, startIndex + itemsPerPage);
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-    setSelectedItems([]); // Clear selections when changing pages
-  };
-
-  const handleItemsPerPageChange = (value) => {
-    setItemsPerPage(Number(value));
-    setCurrentPage(1);
-    setSelectedItems([]);
-  };
-
-  // Mobile card view component
-  const MobileItemCard = ({ item, type }) => {
-    const isExpense = type === 'expense';
-    const property = isExpense ? properties.find(p => p.id === item.property_id) : null;
-    
-    // ✅ FIXED: Use correct total calculation
-    const total = parseFloat(item.amount || 0);
-    
-    const proofUrl = isExpense 
-      ? getFullExpenseProofUrl(item)
-      : getFullPaymentProofUrl(item);
-
-    const hasProof = isExpense ? !!item.proof : !!(item.proof || item.proofUrl || item.proofFilename || item.attachment);
-
-    return (
-      <Card className="p-4 mb-3 border-l-4 border-l-blue-500">
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex items-center gap-3">
-            <input 
-              type="checkbox" 
-              checked={selectedItems.includes(item.id)} 
-              onChange={() => toggleSelection(item.id)}
-              className="w-4 h-4 text-blue-600 rounded border-gray-300"
-            />
-            <div>
-              <p className="font-semibold text-gray-900">
-                {isExpense ? (item.reference_number || item.id?.substring(0, 8)) : (item.id?.substring(0, 8)?.toUpperCase())}
-              </p>
-              <p className="text-sm text-gray-500">
-                {isExpense ? (item.date ? new Date(item.date).toLocaleDateString() : 'N/A') : (item.startDate ? new Date(item.startDate).toLocaleDateString() : 'N/A')}
-              </p>
-            </div>
-          </div>
-          {isExpense && (
-            <span className={`px-2 py-1 rounded text-xs font-medium ${
-              item.payment_status === 'paid'
-                ? 'bg-green-100 text-green-700'
-                : item.payment_status === 'overdue'
-                ? 'bg-red-100 text-red-700'
-                : 'bg-yellow-100 text-yellow-700'
-            }`}>
-              {(item.payment_status || 'pending').toUpperCase()}
-            </span>
-          )}
-        </div>
-
-        <div className="space-y-2 mb-3">
-          <p className="text-gray-700">
-            {isExpense ? item.description : `Payment for lease: ${item.leaseId?.substring(0, 8)}`}
-          </p>
-          {isExpense && property && (
-            <p className="text-sm text-gray-600">
-              Property: {property.name}
-            </p>
-          )}
-          <div className="flex justify-between items-center">
-            <span className="text-lg font-bold text-gray-900">
-              FRW {total.toLocaleString()}
-            </span>
-            {hasProof ? (
-              <button
-                onClick={() => handleViewProof(proofUrl)}
-                className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                title="View Proof"
-              >
-                <FiPaperclip className="w-4 h-4" />
-              </button>
-            ) : (
-              <span className="text-gray-400 text-sm">No proof</span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2 border-t pt-3">
-          <Button 
-            onClick={() => handlePrint(item, type)} 
-            className="p-2 text-blue-600 hover:bg-blue-50"
-            title="Print"
-          >
-            <FiPrinter className="w-4 h-4" />
-          </Button>
-          <Button 
-            onClick={() => handleDownload(item, type)} 
-            className="p-2 text-green-600 hover:bg-green-50"
-            title="Download"
-          >
-            <FiDownload className="w-4 h-4" />
-          </Button>
-        </div>
-      </Card>
-    );
-  };
-
-  // Pagination Component
-  const PaginationControls = () => {
-    const pageNumbers = [];
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pageNumbers.push(i);
-    }
-
-    return (
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 px-4">
-        {/* Items per page selector */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Show:</span>
-          <Select
-            options={itemsPerPageOptions}
-            value={itemsPerPage}
-            onChange={handleItemsPerPageChange}
-            className="w-32"
-          />
-        </div>
-
-        {/* Page info */}
-        <div className="text-sm text-gray-600">
-          Showing {startIndex + 1} to {Math.min(endIndex, currentItems.length)} of {currentItems.length} items
-        </div>
-
-        {/* Pagination buttons */}
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            variant="outline"
-            className="p-2"
-            title="Previous page"
-          >
-            <FiChevronLeft className="w-4 h-4" />
-          </Button>
-
-          {startPage > 1 && (
-            <>
-              <Button
-                onClick={() => handlePageChange(1)}
-                variant="outline"
-                className="px-3 py-2"
-              >
-                1
-              </Button>
-              {startPage > 2 && <span className="text-gray-500">...</span>}
-            </>
-          )}
-
-          {pageNumbers.map(page => (
-            <Button
-              key={page}
-              onClick={() => handlePageChange(page)}
-              variant={currentPage === page ? 'primary' : 'outline'}
-              className={`px-3 py-2 ${currentPage === page ? 'bg-blue-600 text-white' : ''}`}
-            >
-              {page}
-            </Button>
-          ))}
-
-          {endPage < totalPages && (
-            <>
-              {endPage < totalPages - 1 && <span className="text-gray-500">...</span>}
-              <Button
-                onClick={() => handlePageChange(totalPages)}
-                variant="outline"
-                className="px-3 py-2"
-              >
-                {totalPages}
-              </Button>
-            </>
-          )}
-
-          <Button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            variant="outline"
-            className="p-2"
-            title="Next page"
-          >
-            <FiChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-    );
-  };
+  const formatCurrency = (amt) => new Intl.NumberFormat('en-RW', { style: 'currency', currency: 'RWF' }).format(amt);
 
   return (
-    <div className="space-y-6 pt-12 px-3 sm:px-6 mt-3">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
-          <p className="text-gray-600">Manage expenses and payments</p>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => setActiveTab('expenses')} 
-            className={activeTab === 'expenses' ? 'bg-red-500 hover:bg-red-600 text-white border-blue-200' : ''}
-          >
-            Expenses
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => setActiveTab('payments')} 
-            className={activeTab === 'payments' ? 'bg-yellow-500 hover:bg-yellow-600 text-white border-blue-200' : ''}
-          >
-            Payments
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <div className="max-w-[1600px] mx-auto space-y-8">
 
-      {/* Search and Filters */}
-      <Card className="p-4">
-        {/* Search Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-4 sm:mb-0">
-          <div className="flex-1 relative">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Search..."
+        {/* Hero Section */}
+        <Card className="p-6 md:p-10 bg-gray-800/40 backdrop-blur-sm border-gray-700/50 overflow-hidden relative" hover={false}>
+          <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+            <Archive size={200} className="text-sky-500" />
+          </div>
+
+          <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 text-[10px] font-black uppercase tracking-widest italic animate-pulse">
+                <Activity size={12} /> Document Intelligence Matrix
+              </div>
+              <div className="flex flex-col md:flex-row md:items-end gap-10">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white uppercase italic tracking-tighter leading-none">
+                  Archival <span className="text-sky-500">Nodes</span>
+                </h1>
+                <div className="flex bg-gray-900/50 p-2 rounded-2xl border border-gray-700/50">
+                  <button
+                    onClick={() => setActiveTab('expenses')}
+                    className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest italic transition-all ${activeTab === 'expenses' ? 'bg-sky-500 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                  >
+                    Expenses
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('payments')}
+                    className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest italic transition-all ${activeTab === 'payments' ? 'bg-emerald-500 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                  >
+                    Payments
+                  </button>
+                </div>
+              </div>
+              <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] italic mt-4 flex items-center gap-2">
+                <ClipboardList size={14} className="text-sky-400" /> Synthesizing financial manifestations and verification proofs
+              </p>
+            </div>
+
+            <div className="flex gap-6">
+              <div className="text-right">
+                <p className="text-[9px] font-black text-gray-500 uppercase italic tracking-widest mb-1">Total Manifests</p>
+                <p className="text-3xl font-black text-white italic tracking-tighter">{currentItems.length}</p>
+              </div>
+              <div className="h-12 w-px bg-gray-700"></div>
+              <div className="text-right">
+                <p className="text-[9px] font-black text-gray-500 uppercase italic tracking-widest mb-1">Aggregate Valuation</p>
+                <p className="text-3xl font-black text-sky-400 italic tracking-tighter">{formatCurrency(currentItems.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0))}</p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Filters */}
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="relative flex-1 group">
+            <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+              <Search size={18} className="text-gray-500 group-focus-within:text-sky-500 transition-colors" />
+            </div>
+            <input
+              type="text"
+              placeholder="Query archival matrix for specific signatures or descriptors..."
+              className="w-full pl-16 pr-6 py-5 bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-[1.5rem] text-white font-bold italic placeholder-gray-500 outline-hidden transition-all shadow-inner focus:border-sky-500/30 focus:shadow-[0_0_20px_rgba(14,165,233,0.1)]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
             />
           </div>
-          
-          {/* Filter Toggle for Mobile */}
           <Button
-            onClick={() => setShowFilters(!showFilters)}
             variant="outline"
-            className="sm:hidden flex items-center gap-2"
+            className={`px-8 rounded-[1.5rem] border-gray-700/50 transition-all ${showFilters ? 'bg-sky-500/10 text-sky-400 border-sky-500/30' : 'text-gray-400'}`}
+            onClick={() => setShowFilters(!showFilters)}
           >
-            <FiFilter className="w-4 h-4" />
-            <span>Filters</span>
-            {showFilters ? <FiChevronUp className="w-4 h-4" /> : <FiChevronDown className="w-4 h-4" />}
+            <Filter size={18} className="mr-2" /> {showFilters ? 'Lock Filters' : 'Unlock Gates'}
           </Button>
         </div>
 
-        {/* Filters - Responsive */}
-        <div className={`${showFilters || !isMobile ? 'block' : 'hidden'} mt-4 sm:mt-0 sm:block`}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Select
-              options={propertyOptions}
-              value={filterProperty}
-              onChange={(value) => setFilterProperty(value)}
-            />
-            {activeTab === 'expenses' && (
+        {showFilters && (
+          <Card className="p-8 bg-gray-800/40 backdrop-blur-sm border-gray-700/50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 animate-slide-up" hover={false}>
+            <div className="space-y-3">
+              <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest italic ml-1 flex items-center gap-2"><Building size={12} /> Property Node</label>
               <Select
-                options={statusOptions}
-                value={filterStatus}
-                onChange={(value) => setFilterStatus(value)}
+                options={[{ value: '', label: 'Global Array' }, ...properties.map(p => ({ value: p.id, label: p.name }))]}
+                value={filterProperty ? { value: filterProperty, label: properties.find(p => p.id === filterProperty)?.name } : { value: '', label: 'Global Array' }}
+                onChange={(v) => setFilterProperty(v?.value || '')}
               />
-            )}
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              placeholder="From"
-            />
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              placeholder="To"
-            />
-          </div>
-        </div>
-      </Card>
-
-      {/* Content */}
-      {isMobile ? (
-        /* Mobile View - Card Layout */
-        <div>
-          {/* Select All for Mobile */}
-          {paginatedItems.length > 0 && (
-            <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
-              <input 
-                type="checkbox" 
-                checked={paginatedItems.length > 0 && selectedItems.length === paginatedItems.length}
-                onChange={toggleSelectAll}
-                className="w-4 h-4 text-blue-600 rounded border-gray-300"
-              />
-              <span className="text-sm text-gray-600">
-                {selectedItems.length} of {paginatedItems.length} selected
-              </span>
             </div>
-          )}
-
-          {loading ? (
-            <Card className="p-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-gray-600 mt-2">Loading...</p>
-            </Card>
-          ) : paginatedItems.length === 0 ? (
-            <Card className="p-8 text-center">
-              <FiFileText className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-semibold text-gray-900">No documents</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                No {activeTab} found matching your criteria.
-              </p>
-            </Card>
-          ) : (
-            <div>
-              {paginatedItems.map(item => (
-                <MobileItemCard 
-                  key={item.id} 
-                  item={item} 
-                  type={activeTab === 'expenses' ? 'expense' : 'payment'} 
+            {activeTab === 'expenses' && (
+              <div className="space-y-3">
+                <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest italic ml-1 flex items-center gap-2"><Activity size={12} /> Payment State</label>
+                <Select
+                  options={[{ value: '', label: 'All States' }, { value: 'paid', label: 'Paid' }, { value: 'pending', label: 'Pending' }]}
+                  value={filterStatus ? { value: filterStatus, label: filterStatus.toUpperCase() } : { value: '', label: 'All States' }}
+                  onChange={(v) => setFilterStatus(v?.value || '')}
                 />
-              ))}
+              </div>
+            )}
+            <div className="space-y-3">
+              <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest italic ml-1 flex items-center gap-2"><Calendar size={12} /> Temporal Start</label>
+              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-full px-6 py-4 bg-gray-900/50 border border-gray-700 rounded-xl text-xs font-black text-white italic outline-hidden focus:border-sky-500/50 transition-all" />
             </div>
-          )}
-
-          {/* Mobile Pagination */}
-          {!loading && paginatedItems.length > 0 && <PaginationControls />}
-        </div>
-      ) : (
-        /* Desktop View - Table Layout */
-        <>
-          {/* Table */}
-          <Card className="overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b-2 border-gray-200">
-                  <tr>
-                    <th className="w-12 px-4 py-3">
-                      <input 
-                        type="checkbox" 
-                        checked={paginatedItems.length > 0 && selectedItems.length === paginatedItems.length}
-                        onChange={toggleSelectAll} 
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300"
-                      />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Reference</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Description</th>
-                    {activeTab === 'expenses' && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Property</th>}
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Amount</th>
-                    {activeTab === 'expenses' && <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Status</th>}
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Proof</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Actions</th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-gray-200">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={activeTab === 'expenses' ? 9 : 8} className="text-center py-8">
-                        <div className="flex flex-col items-center justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
-                          <p className="text-gray-600">Loading...</p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : paginatedItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={activeTab === 'expenses' ? 9 : 8} className="text-center py-8 text-gray-500">
-                        No {activeTab} found
-                      </td>
-                    </tr>
-                  ) : activeTab === 'expenses' ? (
-                    paginatedItems.map(expense => {
-                      const property = properties.find(p => p.id === expense.property_id);
-                      const total = parseFloat(expense.amount || 0);
-                      const proofUrl = getFullExpenseProofUrl(expense);
-                      const hasProof = !!expense.proof;
-
-                      return (
-                        <tr key={expense.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3">
-                            <input 
-                              type="checkbox" 
-                              checked={selectedItems.includes(expense.id)} 
-                              onChange={() => toggleSelection(expense.id)} 
-                              className="w-4 h-4 text-blue-600 rounded border-gray-300"
-                            />
-                          </td>
-                          <td className="px-4 py-3">{expense.date ? new Date(expense.date).toLocaleDateString() : 'N/A'}</td>
-                          <td className="px-4 py-3">{expense.reference_number || expense.id?.substring(0, 8) || 'N/A'}</td>
-                          <td className="px-4 py-3">{expense.description || 'N/A'}</td>
-                          <td className="px-4 py-3">{property?.name || 'N/A'}</td>
-                          <td className="px-4 py-3 text-right">FRW {total.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              expense.payment_status === 'paid'
-                                ? 'bg-green-100 text-green-700'
-                                : expense.payment_status === 'overdue'
-                                ? 'bg-red-100 text-red-700'
-                                : 'bg-yellow-100 text-yellow-700'
-                            }`}>
-                              {(expense.payment_status || 'pending').toUpperCase()}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            {hasProof ? (
-                              <button
-                                onClick={() => handleViewProof(proofUrl)}
-                                className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors"
-                                title="View Proof"
-                              >
-                                <FiPaperclip className="w-4 h-4" />
-                              </button>
-                            ) : (
-                              <span className="text-gray-400 text-sm">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex justify-end gap-1">
-                              <Button 
-                                onClick={() => handlePrint(expense, 'expense')} 
-                                className="p-2 text-blue-600 hover:bg-blue-50"
-                                title="Print"
-                              >
-                                <FiPrinter />
-                              </Button>
-                              <Button 
-                                onClick={() => handleDownload(expense, 'expense')} 
-                                className="p-2 text-green-600 hover:bg-green-50"
-                                title="Download"
-                              >
-                                <FiDownload />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    paginatedItems.map(payment => {
-                      const proofUrl = getFullPaymentProofUrl(payment);
-                      const hasProof = !!(payment.proof || payment.proofUrl || payment.proofFilename || payment.attachment);
-
-                      return (
-                        <tr key={payment.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3">
-                            <input 
-                              type="checkbox" 
-                              checked={selectedItems.includes(payment.id)} 
-                              onChange={() => toggleSelection(payment.id)} 
-                              className="w-4 h-4 text-blue-600 rounded border-gray-300"
-                            />
-                          </td>
-                          <td className="px-4 py-3">{payment.startDate ? new Date(payment.startDate).toLocaleDateString() : 'N/A'}</td>
-                          <td className="px-4 py-3">{payment.id?.substring(0, 8)?.toUpperCase() || 'N/A'}</td>
-                          <td className="px-4 py-3">Payment for lease: {payment.leaseId?.substring(0, 8) || 'N/A'}</td>
-                          <td className="px-4 py-3 text-right">FRW {parseFloat(payment.amount || 0).toLocaleString()}</td>
-                          <td className="px-4 py-3 text-center">
-                            {hasProof ? (
-                              <button
-                                onClick={() => handleViewProof(proofUrl)}
-                                className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors"
-                                title="View Proof"
-                              >
-                                <FiPaperclip className="w-4 h-4" />
-                              </button>
-                            ) : (
-                              <span className="text-gray-400 text-sm">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex justify-end gap-1">
-                              <Button 
-                                onClick={() => handlePrint(payment, 'payment')} 
-                                className="p-2 text-blue-600 hover:bg-blue-50"
-                                title="Print"
-                              >
-                                <FiPrinter />
-                              </Button>
-                              <Button 
-                                onClick={() => handleDownload(payment, 'payment')} 
-                                className="p-2 text-green-600 hover:bg-green-50"
-                                title="Download"
-                              >
-                                <FiDownload />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest italic ml-1 flex items-center gap-2"><Calendar size={12} /> Temporal End</label>
+              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-full px-6 py-4 bg-gray-900/50 border border-gray-700 rounded-xl text-xs font-black text-white italic outline-hidden focus:border-sky-500/50 transition-all" />
             </div>
           </Card>
+        )}
 
-          {/* Desktop Pagination */}
-          {!loading && paginatedItems.length > 0 && <PaginationControls />}
-        </>
-      )}
+        <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/50 overflow-hidden" hover={false}>
+          {/* Desktop Table */}
+          <div className="hidden xl:block overflow-x-auto">
+            <table className="w-full text-left table-auto">
+              <thead className="bg-gray-900/50 text-[10px] font-black text-gray-500 uppercase tracking-widest italic border-b border-gray-700/50">
+                <tr>
+                  <th className="px-10 py-6">Temporal Signature</th>
+                  <th className="px-10 py-6">Reference UID</th>
+                  <th className="px-10 py-6">Descriptor Content</th>
+                  <th className="px-10 py-6 text-right">Fiscal Load</th>
+                  <th className="px-10 py-6 text-center">Verification</th>
+                  <th className="px-10 py-6 text-right">Console</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700/30">
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="px-10 py-32 text-center">
+                      <div className="flex flex-col items-center gap-4 animate-pulse">
+                        <Zap size={48} className="text-sky-500" />
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Interrogating Archival spectrum...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : paginatedItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-10 py-32 text-center italic text-gray-400 font-black uppercase tracking-widest text-[10px]">No manifest signals captured in this filter.</td>
+                  </tr>
+                ) : (
+                  paginatedItems.map((item) => {
+                    const isExpense = activeTab === 'expenses';
+                    const proofUrl = isExpense ? getFullExpenseProofUrl(item) : getFullPaymentProofUrl(item);
+                    return (
+                      <tr key={item.id} className="group hover:bg-gray-700/20 transition-all duration-300">
+                        <td className="px-10 py-8">
+                          <div className="flex items-center gap-3">
+                            <Calendar size={14} className="text-sky-500/50" />
+                            <span className="text-xs font-black text-white italic uppercase">{new Date(isExpense ? item.date : item.startDate).toLocaleDateString()}</span>
+                          </div>
+                        </td>
+                        <td className="px-10 py-8">
+                          <span className="px-3 py-1.5 bg-gray-900 border border-gray-700 rounded-xl text-[9px] font-black text-gray-400 uppercase tracking-widest italic">
+                            {isExpense ? (item.reference_number || item.id?.substring(0, 8)) : item.id?.substring(0, 8)?.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="px-10 py-8">
+                          <p className="text-[11px] font-bold text-gray-400 italic truncate max-w-[200px] group-hover:max-w-none group-hover:whitespace-normal transition-all">
+                            {isExpense ? item.description : `Protocol execution for lease SIGNAL_${item.leaseId?.substring(0, 8)?.toUpperCase()}`}
+                          </p>
+                        </td>
+                        <td className="px-10 py-8 text-right">
+                          <span className={`text-xl font-black italic tracking-tighter ${isExpense ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            {formatCurrency(item.amount)}
+                          </span>
+                        </td>
+                        <td className="px-10 py-8 text-center">
+                          {proofUrl ? (
+                            <button onClick={() => handleViewProof(proofUrl)} className="p-3 rounded-2xl bg-sky-500/10 text-sky-400 hover:bg-sky-500 hover:text-white transition-all shadow-lg border border-sky-500/20">
+                              <Paperclip size={16} />
+                            </button>
+                          ) : <span className="text-[9px] font-black text-gray-600 uppercase italic">VOID</span>}
+                        </td>
+                        <td className="px-10 py-8 text-right opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300">
+                          <div className="flex items-center justify-end gap-3">
+                            <button onClick={() => handlePrint(item, isExpense ? 'expense' : 'payment')} className="p-3 rounded-2xl bg-gray-900 text-gray-400 hover:text-sky-400 border border-gray-700 shadow-xl transition-all">
+                              <Printer size={16} />
+                            </button>
+                            <button onClick={() => handleDownload(item, isExpense ? 'expense' : 'payment')} className="p-3 rounded-2xl bg-gray-900 text-gray-400 hover:text-emerald-400 border border-gray-700 shadow-xl transition-all">
+                              <Download size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-4 bg-linear-to-br from-blue-50 to-blue-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Documents</p>
-              <p className="text-2xl font-bold text-blue-600">{currentSummary.count}</p>
-            </div>
-            <FiFileText className="text-4xl text-blue-400" />
+          {/* Mobile/Tablet Feed */}
+          <div className="xl:hidden divide-y divide-gray-700/30">
+            {paginatedItems.map((item) => {
+              const isExpense = activeTab === 'expenses';
+              const proofUrl = isExpense ? getFullExpenseProofUrl(item) : getFullPaymentProofUrl(item);
+              return (
+                <div key={item.id} className="p-6 space-y-6 hover:bg-gray-700/20 transition-all">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-sky-400 uppercase italic tracking-widest">{new Date(isExpense ? item.date : item.startDate).toLocaleDateString()}</p>
+                      <p className="text-xl font-black text-white italic uppercase tracking-tighter">
+                        {formatCurrency(item.amount)}
+                      </p>
+                    </div>
+                    <span className="px-3 py-1 bg-gray-900 border border-gray-700 rounded-lg text-[9px] font-black text-gray-500 tracking-widest italic">
+                      ID: {isExpense ? (item.reference_number || item.id?.substring(0, 8)) : item.id?.substring(0, 8)?.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <p className="text-sm font-bold text-gray-400 italic">
+                    {isExpense ? item.description : `Signal from lease ${item.leaseId?.substring(0, 8)}`}
+                  </p>
+
+                  <div className="flex items-center justify-between">
+                    {proofUrl ? (
+                      <button onClick={() => handleViewProof(proofUrl)} className="flex items-center gap-2 px-4 py-2 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded-xl text-[10px] font-black uppercase italic">
+                        <Paperclip size={14} /> View Proof
+                      </button>
+                    ) : <div />}
+                    <div className="flex gap-2">
+                      <button onClick={() => handlePrint(item, isExpense ? 'expense' : 'payment')} className="p-3 bg-gray-900 rounded-xl text-gray-400 border border-gray-700"> <Printer size={16} /> </button>
+                      <button onClick={() => handleDownload(item, isExpense ? 'expense' : 'payment')} className="p-3 bg-gray-900 rounded-xl text-gray-400 border border-gray-700"> <Download size={16} /> </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </Card>
 
-        <Card className="p-4 bg-linear-to-br from-green-50 to-green-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">With Proof</p>
-              <p className="text-2xl font-bold text-green-600">{currentSummary.withProof}</p>
-            </div>
-            <FiPaperclip className="text-4xl text-green-400" />
+        {/* Pagination */}
+        <div className="flex justify-between items-center py-6">
+          <div className="text-[10px] font-black text-gray-500 uppercase italic tracking-[0.2em]">
+            Index <span className="text-sky-400 font-black">{currentPage}</span> // Matrix <span className="text-white font-black">{totalPages}</span>
           </div>
-        </Card>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
+              disabled={currentPage <= 1}
+              className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${currentPage <= 1
+                ? 'text-gray-700 cursor-not-allowed bg-gray-800/20'
+                : 'text-gray-400 hover:text-sky-400 hover:bg-gray-800'
+                }`}
+            >
+              Retreat
+            </button>
+            <button
+              onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
+              disabled={currentPage >= totalPages}
+              className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${currentPage >= totalPages
+                ? 'text-gray-700 cursor-not-allowed bg-gray-800/20'
+                : 'bg-sky-600 text-white shadow-xl hover:bg-sky-500 hover:scale-105 active:scale-95'
+                }`}
+            >
+              Advance
+            </button>
+          </div>
+        </div>
 
-        <Card className="p-4 bg-linear-to-br from-purple-50 to-purple-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Amount</p>
-              <p className="text-2xl font-bold text-purple-600">
-                FRW {currentSummary.total.toLocaleString()}
-              </p>
+        {/* Proof Modal */}
+        {proofModalOpen && (
+          <Modal
+            title="Manifest Validation Proof"
+            onClose={() => setProofModalOpen(false)}
+            hideSubmit
+            className="max-w-4xl"
+          >
+            <div className="p-6 space-y-8 text-center animate-fade-in">
+              <div className="relative group mx-auto bg-gray-950 rounded-[2rem] p-4 border border-gray-700 shadow-inner overflow-hidden min-h-[400px] flex items-center justify-center">
+                <img
+                  src={proofUrl}
+                  alt="Binary Proof"
+                  className="max-w-full max-h-[70vh] rounded-xl shadow-2xl group-hover:scale-105 transition-transform duration-700"
+                  onError={(e) => {
+                    e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" fill="none"><path d="M0 0h400v400H0z"/><text x="50%" y="50%" text-anchor="middle" font-family="monospace" font-weight="900" font-size="20" fill="gray">MANIFEST_NULL_ERROR</text></svg>';
+                  }}
+                />
+              </div>
+
+              <div className="flex justify-center gap-4">
+                <Button onClick={() => window.open(proofUrl, '_blank')} className="px-10">
+                  <Eye size={18} className="mr-2" /> Open Source
+                </Button>
+                <Button variant="outline" onClick={() => setProofModalOpen(false)} className="px-10 text-gray-400 border-gray-700">
+                  <X size={18} className="mr-2" /> Close Terminal
+                </Button>
+              </div>
             </div>
-            <FiDollarSign className="text-4xl text-purple-400" />
-          </div>
-        </Card>
+          </Modal>
+        )}
       </div>
-
-      {/* Proof Modal */}
-      {proofModalOpen && (
-        <Modal 
-          title="Document Proof" 
-          onClose={() => setProofModalOpen(false)}
-          hideSubmit
-          size="lg"
-        >
-          <div className="text-center">
-            <img
-              src={proofUrl}
-              alt="Document Proof"
-              className="max-h-[500px] max-w-full mx-auto rounded-md shadow-md"
-              onError={(e) => {
-                console.error('Proof image load error:', proofUrl);
-                e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%23999">Proof not available</text></svg>';
-              }}
-            />
-            <div className="mt-3 text-sm text-gray-500 break-all">
-              {proofUrl.split('/').pop()}
-            </div>
-            <div className="mt-4 flex justify-center gap-2">
-              <Button
-                onClick={() => window.open(proofUrl, '_blank')}
-                className="flex items-center gap-2"
-              >
-                Open in New Tab
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setProofModalOpen(false)}
-                className="flex items-center gap-2"
-              >
-                <FiX className="w-4 h-4" />
-                Close
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 };

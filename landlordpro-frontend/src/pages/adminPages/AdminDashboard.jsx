@@ -1,642 +1,586 @@
-// src/pages/AdminDashboard.jsx
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import {
-  FiHome,
-  FiLayers,
-  FiDollarSign,
-  FiUsers,
-  FiTrendingUp,
-  FiTrendingDown,
-  FiRefreshCcw,
-  FiChevronRight,
-} from 'react-icons/fi';
+  Home,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  RefreshCcw,
+  Building,
+  Activity,
+  Users,
+  Wallet,
+} from 'lucide-react';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
   PieChart,
   Pie,
   Cell,
   BarChart,
   Bar,
 } from 'recharts';
-import { Card, Button, Spinner } from '../../components';
-import { getLoggedInUser } from '../../services/AuthService';
-import { getAllProperties } from '../../services/propertyService';
-import { getAllLocals } from '../../services/localService';
-import { getAllTenants } from '../../services/tenantService';
-import leaseService from '../../services/leaseService';
+import { getFinancialSummary, getOccupancyStats } from '../../services/reportService';
+import { getAllExpenses } from '../../services/expenseService';
 import { getAllPayments } from '../../services/paymentService';
-import { getAllExpenses, getExpenseSummary } from '../../services/expenseService';
-import { getAllFloorsOccupancy } from '../../services/floorService';
+import { getAllTenants } from '../../services/tenantService';
+import { getAllProperties } from '../../services/propertyService';
 import { showError } from '../../utils/toastHelper';
+import { Card, Button } from '../../components';
 
-const CHART_COLORS = ['#14B8A6', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899'];
-
-const rangeOptions = [
-  { value: '3m', label: 'Last 90 Days' },
-  { value: '6m', label: 'Last 6 Months' },
-  { value: '12m', label: 'Last 12 Months' },
-];
-
-const getDateRange = (value) => {
-  const now = new Date();
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const start = new Date(end);
-
-  if (value === '12m') {
-    start.setFullYear(end.getFullYear() - 1);
-  } else if (value === '6m') {
-    start.setMonth(end.getMonth() - 5);
-  } else {
-    start.setMonth(end.getMonth() - 2);
-  }
-
-  return {
-    startDate: new Date(start.getFullYear(), start.getMonth(), 1),
-    endDate: end,
-  };
-};
-
-const initialiseMonthlySeries = (startDate, endDate) => {
-  const series = [];
-  const cursor = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-
-  while (cursor <= endDate) {
-    series.push({
-      key: `${cursor.getFullYear()}-${cursor.getMonth()}`,
-      month: cursor.toLocaleString('default', { month: 'short' }),
-      income: 0,
-      expenses: 0,
-      profit: 0,
-    });
-    cursor.setMonth(cursor.getMonth() + 1);
-  }
-
-  return series;
-};
+const COLORS = ['#0D9488', '#6366F1', '#F59E0B', '#EC4899', '#8B5CF6'];
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat('en-RW', {
     style: 'currency',
     currency: 'RWF',
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(amount || 0);
 
 const AdminDashboard = () => {
-  const navigate = useNavigate();
-  const user = getLoggedInUser();
-
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [range, setRange] = useState('6m');
-  const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const [portfolio, setPortfolio] = useState({
-    properties: [],
-    locals: [],
-    tenants: [],
-    leases: [],
-    payments: [],
-    expenses: [],
-    occupancy: [],
+  // Dashboard Data State
+  const [financialData, setFinancialData] = useState({
+    totalIncome: 0,
+    totalExpenses: 0,
+    netProfit: 0,
+    monthlyStats: []
+  });
+  const [stats, setStats] = useState({
+    properties: 0,
+    tenants: 0,
+    paymentsCount: 0,
+    expensesCount: 0,
+    occupancyRate: 0,
+    occupiedUnits: 0,
+    totalUnits: 0
+  });
+  const [recentTenants, setRecentTenants] = useState([]);
+  const [recentExpenses, setRecentExpenses] = useState([]);
+  const [propertyPerformance, setPropertyPerformance] = useState([]);
+  const [expenseCategories, setExpenseCategories] = useState([]);
+
+  const [visibleLines, setVisibleLines] = useState({
+    income: true,
+    expenses: true,
+    profit: true
   });
 
-  const [expenseSummary, setExpenseSummary] = useState({
-    total: 0,
-    paid: 0,
-    pending: 0,
-    overdue: 0,
-  });
-
-  const { startDate, endDate } = useMemo(() => getDateRange(range), [range]);
-
-  const fetchDashboardData = useCallback(async () => {
+  const fetchData = async () => {
     try {
-      setError(null);
       setLoading(true);
 
       const [
-        propertiesRes,
-        localsRes,
-        tenantsRes,
-        leasesRes,
+        financialRes,
         paymentsRes,
         expensesRes,
-        expenseSummaryRes,
-        occupancyRes,
-      ] = await Promise.all([
-        getAllProperties(1, 1000),
-        getAllLocals({ page: 1, limit: 2000 }),
-        getAllTenants(1, 1000),
-        leaseService.getLeases(1, 1000),
+        tenantsRes,
+        propertiesRes,
+        occupancyRes
+      ] = await Promise.allSettled([
+        getFinancialSummary({ range }),
         getAllPayments(),
-        getAllExpenses({ page: 1, limit: 1000, startDate: startDate.toISOString().split('T')[0], endDate: endDate.toISOString().split('T')[0] }),
-        getExpenseSummary({ startDate: startDate.toISOString().split('T')[0], endDate: endDate.toISOString().split('T')[0] }),
-        getAllFloorsOccupancy(),
+        getAllExpenses({ limit: 100 }),
+        getAllTenants(1, 10),
+        getAllProperties(1, 100),
+        getOccupancyStats()
       ]);
 
-      const properties = Array.isArray(propertiesRes?.properties)
-        ? propertiesRes.properties
-        : Array.isArray(propertiesRes?.data)
-        ? propertiesRes.data
-        : Array.isArray(propertiesRes)
-        ? propertiesRes
+      if (financialRes.status === 'fulfilled' && financialRes.value) {
+        const data = financialRes.value;
+        setFinancialData(prev => ({
+          ...prev,
+          totalIncome: data.totalIncome || 0,
+          totalExpenses: data.totalExpense || 0,
+          netProfit: data.netIncome || 0,
+        }));
+
+        if (data.expensesByCategory) {
+          const categories = Object.entries(data.expensesByCategory).map(([name, value]) => ({
+            name,
+            value
+          }));
+          setExpenseCategories(categories);
+        } else if (data.totalExpense > 0) {
+          setExpenseCategories([{ name: 'Uncategorized', value: data.totalExpense }]);
+        } else {
+          setExpenseCategories([]);
+        }
+      }
+
+      const allPayments = paymentsRes.status === 'fulfilled' && Array.isArray(paymentsRes.value)
+        ? paymentsRes.value
+        : [];
+      const allExpenses = expensesRes.status === 'fulfilled' && expensesRes.value?.data && Array.isArray(expensesRes.value.data)
+        ? expensesRes.value.data
         : [];
 
-      const locals = Array.isArray(localsRes?.locals)
-        ? localsRes.locals
-        : Array.isArray(localsRes?.data)
-        ? localsRes.data
-        : Array.isArray(localsRes?.rows)
-        ? localsRes.rows
-        : Array.isArray(localsRes)
-        ? localsRes
-        : [];
+      setStats(prev => ({
+        ...prev,
+        paymentsCount: allPayments.length,
+        expensesCount: allExpenses.length
+      }));
 
-      const tenants = Array.isArray(tenantsRes?.tenants)
-        ? tenantsRes.tenants
-        : Array.isArray(tenantsRes?.data)
-        ? tenantsRes.data
-        : Array.isArray(tenantsRes)
-        ? tenantsRes
-        : [];
+      const monthsLabel = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const trendData = [];
+      const now = new Date();
 
-      const leases = Array.isArray(leasesRes?.data)
-        ? leasesRes.data
-        : Array.isArray(leasesRes?.leases)
-        ? leasesRes.leases
-        : Array.isArray(leasesRes)
-        ? leasesRes
-        : [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        trendData.push({
+          month: monthsLabel[d.getMonth()],
+          monthIdx: d.getMonth(),
+          year: d.getFullYear(),
+          income: 0,
+          expenses: 0,
+          profit: 0
+        });
+      }
 
-      const payments = Array.isArray(paymentsRes?.data)
-        ? paymentsRes.data
-        : Array.isArray(paymentsRes)
-        ? paymentsRes
-        : [];
-
-      const expenses = Array.isArray(expensesRes?.data)
-        ? expensesRes.data
-        : Array.isArray(expensesRes?.expenses)
-        ? expensesRes.expenses
-        : Array.isArray(expensesRes)
-        ? expensesRes
-        : [];
-
-      let occupancy = [];
-      if (Array.isArray(occupancyRes)) occupancy = occupancyRes;
-      else if (Array.isArray(occupancyRes?.data)) occupancy = occupancyRes.data;
-      else if (Array.isArray(occupancyRes?.floors)) occupancy = occupancyRes.floors;
-
-      setPortfolio({
-        properties,
-        locals,
-        tenants,
-        leases,
-        payments,
-        expenses,
-        occupancy,
+      allPayments.forEach(p => {
+        const pDate = new Date(p.date || p.created_at);
+        if (isNaN(pDate.getTime())) return;
+        const monthSlot = trendData.find(m => m.monthIdx === pDate.getMonth() && m.year === pDate.getFullYear());
+        if (monthSlot) monthSlot.income += Number(p.amount || 0);
       });
 
-      setExpenseSummary({
-        total: expensesRes?.summary?.totalAmount ?? expenseSummaryRes?.totalAmount ?? 0,
-        paid: expensesRes?.summary?.paidAmount ?? expenseSummaryRes?.paidAmount ?? 0,
-        pending: expensesRes?.summary?.pendingAmount ?? expenseSummaryRes?.pendingAmount ?? 0,
-        overdue: expensesRes?.summary?.overdueAmount ?? expenseSummaryRes?.overdueAmount ?? 0,
+      allExpenses.forEach(e => {
+        const eDate = new Date(e.payment_date || e.created_at);
+        if (isNaN(eDate.getTime())) return;
+        const monthSlot = trendData.find(m => m.monthIdx === eDate.getMonth() && m.year === eDate.getFullYear());
+        if (monthSlot) monthSlot.expenses += (Number(e.amount || 0) + Number(e.vat_amount || 0));
       });
-    } catch (err) {
-      console.error('Failed to load dashboard data', err);
-      setError(err?.message || 'Failed to load dashboard data');
-      showError(err?.message || 'Failed to load dashboard data');
+
+      trendData.forEach(m => m.profit = m.income - m.expenses);
+      setFinancialData(prev => ({ ...prev, monthlyStats: trendData }));
+
+      setRecentExpenses(allExpenses.slice(0, 5).map(e => ({
+        id: e.id,
+        description: e.description || 'Expense',
+        category: e.category || 'General',
+        amount: e.amount,
+        date: e.payment_date || e.created_at || new Date().toISOString(),
+        status: e.payment_status || 'pending'
+      })));
+
+      if (tenantsRes.status === 'fulfilled' && tenantsRes.value) {
+        const { tenants, total } = tenantsRes.value;
+        setStats(prev => ({ ...prev, tenants: total || (tenants ? tenants.length : 0) }));
+        if (Array.isArray(tenants)) {
+          setRecentTenants(tenants.slice(0, 5).map(t => ({
+            id: t.id,
+            name: t.name,
+            unit: 'N/A',
+            status: 'active'
+          })));
+        }
+      }
+
+      if (occupancyRes.status === 'fulfilled' && occupancyRes.value) {
+        const o = occupancyRes.value;
+        setStats(prev => ({
+          ...prev,
+          totalUnits: o.totalUnits || 0,
+          occupiedUnits: o.occupiedUnits || 0,
+          occupancyRate: o.occupancyRate || 0
+        }));
+      }
+
+      if (propertiesRes.status === 'fulfilled' && propertiesRes.value) {
+        const { properties } = propertiesRes.value;
+        const props = Array.isArray(properties) ? properties : [];
+        setStats(prev => ({ ...prev, properties: props.length }));
+
+        const performance = props.slice(0, 5).map(p => {
+          const propIncome = allPayments
+            .filter(pay => pay.propertyId === p.id)
+            .reduce((sum, pay) => sum + Number(pay.amount || 0), 0);
+
+          const propExpenses = allExpenses
+            .filter(exp => exp.property_id === p.id)
+            .reduce((sum, exp) => sum + Number(exp.amount || 0) + Number(exp.vat_amount || 0), 0);
+
+          return {
+            property: p.name,
+            income: propIncome,
+            expenses: propExpenses
+          };
+        });
+
+        setPropertyPerformance(performance);
+      }
+
+    } catch (error) {
+      console.error("Dashboard fetch error:", error);
+      showError('Failed to load dashboard data');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [startDate, endDate]);
+  };
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+    fetchData();
+  }, [range]);
 
-  const { properties, locals, tenants, leases, payments, expenses, occupancy } = portfolio;
-
-  const totalUnits = locals.length;
-  const occupiedUnits = locals.filter((local) => local.status === 'occupied').length;
-  const availableUnits = locals.filter((local) => local.status === 'available').length;
-  const maintenanceUnits = totalUnits - occupiedUnits - availableUnits;
-  const occupancyRate = totalUnits > 0 ? ((occupiedUnits / totalUnits) * 100).toFixed(1) : '0.0';
-
-  const totalIncome = payments.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
-  const totalExpenseAmount = expenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
-  const netProfit = totalIncome - totalExpenseAmount;
-
-  const monthlySeries = useMemo(() => {
-    const series = initialiseMonthlySeries(startDate, endDate);
-    const seriesMap = new Map(series.map((entry) => [entry.key, entry]));
-
-    payments.forEach((payment) => {
-      const date = new Date(payment.endDate || payment.end_date || payment.created_at);
-      if (Number.isNaN(date.getTime())) return;
-      const key = `${date.getFullYear()}-${date.getMonth()}`;
-      const entry = seriesMap.get(key);
-      if (entry) entry.income += Number(payment.amount) || 0;
-    });
-
-    expenses.forEach((expense) => {
-      const date = new Date(expense.due_date || expense.payment_date || expense.created_at);
-      if (Number.isNaN(date.getTime())) return;
-      const key = `${date.getFullYear()}-${date.getMonth()}`;
-      const entry = seriesMap.get(key);
-      if (entry) entry.expenses += Number(expense.amount) || 0;
-    });
-
-    return Array.from(seriesMap.values()).map((entry) => ({
-      ...entry,
-      income: Number(entry.income.toFixed(2)),
-      expenses: Number(entry.expenses.toFixed(2)),
-      profit: Number((entry.income - entry.expenses).toFixed(2)),
-    }));
-  }, [payments, expenses, startDate, endDate]);
-
-  const expenseByCategory = useMemo(() => {
-    const totals = new Map();
-    expenses.forEach((expense) => {
-      const category = expense.category || 'uncategorised';
-      totals.set(category, (totals.get(category) || 0) + (Number(expense.amount) || 0));
-    });
-
-    return Array.from(totals.entries())
-      .map(([name, value]) => ({ name, value: Number(value.toFixed(2)) }))
-      .sort((a, b) => b.value - a.value);
-  }, [expenses]);
-
-  const propertyPerformance = useMemo(() => {
-    const map = new Map();
-
-    payments.forEach((payment) => {
-      const propertyId = payment.propertyId || payment.property_id;
-      if (!propertyId) return;
-      const entry = map.get(propertyId) || { income: 0, expenses: 0 };
-      entry.income += Number(payment.amount) || 0;
-      map.set(propertyId, entry);
-    });
-
-    expenses.forEach((expense) => {
-      const propertyId = expense.property_id;
-      if (!propertyId) return;
-      const entry = map.get(propertyId) || { income: 0, expenses: 0 };
-      entry.expenses += Number(expense.amount) || 0;
-      map.set(propertyId, entry);
-    });
-
-    return Array.from(map.entries()).map(([propertyId, entry]) => ({
-      property: properties.find((property) => property.id === propertyId)?.name || 'Unknown',
-      income: Number(entry.income.toFixed(2)),
-      expenses: Number(entry.expenses.toFixed(2)),
-      profit: Number((entry.income - entry.expenses).toFixed(2)),
-    }));
-  }, [payments, expenses, properties]);
-
-  const recentTenants = useMemo(() => {
-    return leases
-      .filter((lease) => lease.tenant)
-      .sort((a, b) => {
-        const aDate = new Date(a.updatedAt || a.startDate || a.created_at || 0).getTime();
-        const bDate = new Date(b.updatedAt || b.startDate || b.created_at || 0).getTime();
-        return bDate - aDate;
-      })
-      .slice(0, 6)
-      .map((lease) => ({
-        id: lease.id,
-        name: lease.tenant?.name || 'Unknown tenant',
-        unit:
-          lease.local?.reference_code ||
-          lease.local?.referenceCode ||
-          lease.localId ||
-          '—',
-        leaseEnd: lease.endDate || lease.end_date || '—',
-        status: lease.status || 'active',
-      }));
-  }, [leases]);
-
-  const recentExpenses = useMemo(() =>
-    [...expenses]
-      .sort((a, b) => new Date(b.created_at || b.updated_at) - new Date(a.created_at || a.updated_at))
-      .slice(0, 5),
-  [expenses]);
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
 
   const summaryCards = [
     {
       title: 'Total Income',
-      value: formatCurrency(totalIncome),
-      subtitle: `${payments.length} payments received`,
-      icon: <FiTrendingUp className="text-emerald-500" size={24} />, 
-      color: 'bg-emerald-50',
+      value: formatCurrency(financialData.totalIncome),
+      subtitle: `${stats.paymentsCount} payments`,
+      icon: TrendingUp,
+      change: 'Active',
+      positive: true,
+      color: 'teal'
     },
     {
       title: 'Total Expenses',
-      value: formatCurrency(totalExpenseAmount),
-      subtitle: `${expenses.length} expense records`,
-      icon: <FiTrendingDown className="text-rose-500" size={24} />, 
-      color: 'bg-rose-50',
+      value: formatCurrency(financialData.totalExpenses),
+      subtitle: `${stats.expensesCount} records`,
+      icon: TrendingDown,
+      change: 'Cash Out',
+      positive: false,
+      color: 'rose'
     },
     {
-      title: 'Net Result',
-      value: formatCurrency(netProfit),
-      subtitle: netProfit >= 0 ? 'Positive cash flow' : 'Negative cash flow',
-      icon: <FiDollarSign className="text-blue-500" size={24} />, 
-      color: 'bg-blue-50',
+      title: 'Net Profit',
+      value: formatCurrency(financialData.netProfit),
+      subtitle: financialData.netProfit >= 0 ? 'Positive Flow' : 'Negative Flow',
+      icon: DollarSign,
+      change: financialData.netProfit >= 0 ? 'Profitable' : 'Loss',
+      positive: financialData.netProfit >= 0,
+      color: 'indigo'
     },
     {
       title: 'Occupancy Rate',
-      value: `${occupancyRate}%`,
-      subtitle: `${occupiedUnits}/${totalUnits} units occupied`,
-      icon: <FiHome className="text-indigo-500" size={24} />, 
-      color: 'bg-indigo-50',
+      value: `${stats.occupancyRate}%`,
+      subtitle: `${stats.occupiedUnits}/${stats.totalUnits} units`,
+      icon: Home,
+      change: 'Live',
+      positive: true,
+      color: 'violet'
     },
   ];
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchDashboardData();
-  };
-
-  if (loading) {
+  if (loading && !refreshing && financialData.totalIncome === 0) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Spinner size="xl" text="Loading dashboard..." />
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-400 animate-pulse">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pt-12 px-3 sm:px-6 pb-8">
-      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Welcome back, {user?.name || 'Admin'}
-          </h1>
-          <p className="text-sm text-gray-500">
-            Portfolio overview for {startDate.toLocaleDateString()} – {endDate.toLocaleDateString()}
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="flex rounded-lg border border-gray-200 bg-white overflow-hidden">
-            {rangeOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setRange(option.value)}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  range === option.value
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <Button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="px-4 py-2 flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg"
-          >
-            <FiRefreshCcw className={refreshing ? 'animate-spin' : ''} />
-            {refreshing ? 'Refreshing' : 'Refresh'}
-          </Button>
-        </div>
-      </div>
-
-      {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {summaryCards.map((card) => (
-          <Card key={card.title} className={`p-5 border rounded-xl shadow-sm ${card.color}`}>
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-500">{card.title}</p>
-                <h2 className="text-2xl font-bold text-gray-900 mt-1">{card.value}</h2>
-                <p className="text-xs text-gray-500 mt-2">{card.subtitle}</p>
-              </div>
-              <div className="p-3 bg-white border rounded-lg shadow-sm">{card.icon}</div>
+    <div className="min-h-screen bg-gray-950 px-4 py-8 md:p-8">
+      <div className="max-w-[1600px] mx-auto space-y-8">
+        {/* Header */}
+        <Card className="p-6 md:p-8 bg-gray-800/40 backdrop-blur-sm border-gray-700/50" hover={false}>
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-black text-white mb-2 uppercase italic tracking-tighter">
+                Admin <span className="text-teal-500">Dashboard</span>
+              </h1>
+              <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] italic">
+                Strategic Property Intelligence
+              </p>
             </div>
-          </Card>
-        ))}
-      </div>
 
-      <Card className="p-6 border rounded-xl shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">Income vs Expense</h2>
-          <span className="text-xs text-gray-500">
-            {startDate.toLocaleDateString()} – {endDate.toLocaleDateString()}
-          </span>
-        </div>
-        {monthlySeries.length ? (
-          <ResponsiveContainer width="100%" height={320}>
-            <LineChart data={monthlySeries}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-              <XAxis dataKey="month" stroke="#9CA3AF" />
-              <YAxis stroke="#9CA3AF" tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
-              <Tooltip
-                formatter={(value) => formatCurrency(Number(value))}
-                labelClassName="font-medium"
-              />
-              <Legend />
-              <Line type="monotone" dataKey="income" stroke="#14B8A6" strokeWidth={3} dot={{ r: 4 }} name="Income" />
-              <Line type="monotone" dataKey="expenses" stroke="#F87171" strokeWidth={3} dot={{ r: 4 }} name="Expenses" />
-              <Line type="monotone" dataKey="profit" stroke="#3B82F6" strokeWidth={3} dot={{ r: 4 }} name="Profit" />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="py-12 text-center text-gray-500">No financial activity recorded.</div>
-        )}
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6 border rounded-xl shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Expenses by Category</h2>
-          {expenseByCategory.length ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie data={expenseByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={105}>
-                    {expenseByCategory.map((entry, index) => (
-                      <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="space-y-3">
-                {expenseByCategory.map((entry, index) => (
-                  <div
-                    key={entry.name}
-                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border"
+            <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+              <div className="flex rounded-[1rem] border border-gray-700 bg-gray-800/50 p-1">
+                {['3m', '6m', '12m'].map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => setRange(option)}
+                    className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-[0.8rem] transition-all italic ${range === option
+                      ? 'bg-teal-500 text-white shadow-lg'
+                      : 'text-gray-400 hover:text-white'
+                      }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <span
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
-                      />
-                      <span className="text-sm font-medium text-gray-700 capitalize">
-                        {entry.name}
-                      </span>
-                    </div>
-                    <span className="text-sm font-semibold text-gray-800">
-                      {formatCurrency(entry.value)}
-                    </span>
-                  </div>
+                    {option === '3m' ? '90 Days' : option === '6m' ? '6 Months' : '1 Year'}
+                  </button>
                 ))}
               </div>
-            </div>
-          ) : (
-            <div className="py-12 text-center text-gray-500">No expense data available.</div>
-          )}
-        </Card>
 
-        <Card className="p-6 border rounded-xl shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Property Performance</h2>
-          {propertyPerformance.length ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={propertyPerformance}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis dataKey="property" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                <Legend />
-                <Bar dataKey="income" fill="#14B8A6" name="Income" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="expenses" fill="#F59E0B" name="Expenses" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="profit" fill="#3B82F6" name="Profit" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="py-12 text-center text-gray-500">
-              Not enough data to compare properties.
+              <Button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="lg:w-auto px-8"
+              >
+                <div className="flex items-center gap-2">
+                  <RefreshCcw size={14} className={refreshing ? 'animate-spin' : ''} />
+                  <span>{refreshing ? 'Syncing...' : 'Sync Data'}</span>
+                </div>
+              </Button>
             </div>
-          )}
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6 border rounded-xl shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">Recent Tenants</h2>
-            <button
-              className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
-              onClick={() => navigate('/admin/tenants')}
-            >
-              View all <FiChevronRight size={14} />
-            </button>
           </div>
-          {recentTenants.length ? (
+        </Card>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+          {summaryCards.map((card) => (
+            <Card
+              key={card.title}
+              className="p-6 bg-gray-800/40 backdrop-blur-sm border-gray-700/50"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className={`p-3 rounded-2xl bg-${card.color}-500/10 text-${card.color}-400`}>
+                  <card.icon size={28} />
+                </div>
+                <span className={`text-[10px] font-black uppercase italic tracking-widest px-3 py-1 rounded-full border ${card.positive ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-rose-400 bg-rose-500/10 border-rose-500/20'
+                  }`}>
+                  {card.change}
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest italic">{card.title}</p>
+                <h3 className="text-2xl font-black text-white italic tracking-tight">{card.value}</h3>
+                <p className="text-gray-400 text-xs font-bold italic">{card.subtitle}</p>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Properties', value: stats.properties, icon: Building, color: 'teal' },
+            { label: 'Tenants', value: stats.tenants, icon: Users, color: 'indigo' },
+            { label: 'Avg Income', value: stats.properties ? formatCurrency(financialData.totalIncome / stats.properties) : formatCurrency(0), icon: Wallet, color: 'violet' },
+            { label: 'Ratio', value: `${financialData.totalIncome ? ((financialData.totalExpenses / financialData.totalIncome) * 100).toFixed(1) : 0}%`, icon: Activity, color: 'rose' }
+          ].map((item, idx) => (
+            <Card key={idx} className="p-4 bg-gray-800/40 backdrop-blur-sm border-gray-700/50 flex items-center gap-4">
+              <div className={`p-2.5 rounded-xl bg-${item.color}-500/10 text-${item.color}-400`}>
+                <item.icon size={20} />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic">{item.label}</p>
+                <p className="text-xl font-black text-white italic tracking-tighter">{item.value}</p>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Financial Chart */}
+        <Card className="p-6 md:p-8 bg-gray-800/40 backdrop-blur-sm border-gray-700/50" hover={false}>
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
+            <div>
+              <h2 className="text-2xl font-black text-white uppercase italic tracking-tight mb-1">Financial Analysis</h2>
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic">Node performance monitoring</p>
+            </div>
+
+            <div className="flex items-center flex-wrap gap-3">
+              {[
+                { key: 'income', label: 'Income', color: 'bg-teal-500' },
+                { key: 'expenses', label: 'Expenses', color: 'bg-rose-500' },
+                { key: 'profit', label: 'Profit', color: 'bg-indigo-500' }
+              ].map(m => (
+                <button
+                  key={m.key}
+                  onClick={() => setVisibleLines(prev => ({ ...prev, [m.key]: !prev[m.key] }))}
+                  className={`flex items-center gap-3 px-4 py-2 rounded-xl border transition-all ${visibleLines[m.key]
+                    ? 'bg-gray-700/50 border-gray-600 shadow-lg'
+                    : 'bg-transparent border-gray-800 opacity-40'
+                    }`}
+                >
+                  <div className={`w-2.5 h-2.5 rounded-full ${m.color} shadow-[0_0_8px_rgba(0,0,0,0.5)]`}></div>
+                  <span className="text-[10px] font-black text-white uppercase tracking-widest italic">{m.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="h-[400px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+              <AreaChart data={financialData.monthlyStats}>
+                <defs>
+                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0D9488" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#0D9488" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#F43F5E" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366F1" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  stroke="#4B5563"
+                  tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 900 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  stroke="#4B5563"
+                  tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 900 }}
+                  tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    border: '1px solid rgba(139, 92, 246, 0.2)',
+                    borderRadius: '1.5rem',
+                    padding: '20px',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                    backdropFilter: 'blur(12px)'
+                  }}
+                  itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                  labelStyle={{ color: '#94a3b8', fontWeight: '900', textTransform: 'uppercase', fontStyle: 'italic', marginBottom: '12px', fontSize: '10px' }}
+                  formatter={(value) => [formatCurrency(value), '']}
+                />
+                {visibleLines.income && (
+                  <Area type="monotone" dataKey="income" stroke="#0D9488" strokeWidth={4} fill="url(#colorIncome)" />
+                )}
+                {visibleLines.expenses && (
+                  <Area type="monotone" dataKey="expenses" stroke="#F43F5E" strokeWidth={4} fill="url(#colorExpenses)" />
+                )}
+                {visibleLines.profit && (
+                  <Area type="monotone" dataKey="profit" stroke="#6366F1" strokeWidth={4} fill="url(#colorProfit)" />
+                )}
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        {/* Tables Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Active Leases */}
+          <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/50 overflow-hidden" hover={false}>
+            <div className="p-6 border-b border-gray-700/50 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-black text-white uppercase italic tracking-tight">Active Leases</h2>
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic">Synchronized registry</p>
+              </div>
+              <Button variant="outline" className="px-6 py-2.5 rounded-xl border-gray-700 text-[10px]">Registry</Button>
+            </div>
+
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm text-gray-700">
-                <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 text-xs uppercase">
+              {/* Desktop Table */}
+              <table className="w-full hidden sm:table">
+                <thead className="bg-gray-900/50 text-[10px] font-black text-gray-500 uppercase tracking-widest italic">
                   <tr>
-                    <th className="p-3 text-left">Tenant</th>
-                    <th className="p-3 text-left">Unit</th>
-                    <th className="p-3 text-left">Lease End</th>
-                    <th className="p-3 text-left">Status</th>
+                    <th className="px-6 py-4 text-left">Entity</th>
+                    <th className="px-6 py-4 text-left">Sector</th>
+                    <th className="px-6 py-4 text-left">Status</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-gray-700/30">
                   {recentTenants.map((tenant) => (
-                    <tr key={tenant.id} className="border-b last:border-none">
-                      <td className="p-3 font-medium text-gray-800">{tenant.name}</td>
-                      <td className="p-3 text-sm text-gray-500">{tenant.unit}</td>
-                      <td className="p-3 text-sm text-gray-500">
-                        {tenant.leaseEnd
-                          ? new Date(tenant.leaseEnd).toLocaleDateString()
-                          : '—'}
+                    <tr key={tenant.id} className="group/row hover:bg-gray-700/20 transition-all">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center text-xs font-black italic border border-teal-500/20 group-hover/row:scale-110 transition-transform">
+                            {tenant.name.charAt(0)}
+                          </div>
+                          <span className="font-bold text-white text-sm italic">{tenant.name}</span>
+                        </div>
                       </td>
-                      <td className="p-3">
-                        <span
-                          className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                            tenant.status === 'active'
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : tenant.status === 'overdue'
-                              ? 'bg-rose-100 text-rose-700'
-                              : 'bg-gray-100 text-gray-600'
-                          }`}
-                        >
-                          {tenant.status.charAt(0).toUpperCase() + tenant.status.slice(1)}
+                      <td className="px-6 py-4">
+                        <span className="text-[10px] font-black text-gray-400 bg-gray-700/50 px-3 py-1.5 rounded-lg border border-gray-600/30 italic uppercase">
+                          {tenant.unit}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-[10px] font-black bg-teal-500/10 text-teal-400 border border-teal-500/20 italic uppercase">
+                          <Activity size={12} className="mr-1.5" />
+                          {tenant.status}
                         </span>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-          ) : (
-            <div className="py-6 text-center text-gray-500">No tenant activity recorded.</div>
-          )}
-        </Card>
 
-        <Card className="p-6 border rounded-xl shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">Recent Expenses</h2>
-            <button
-              className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
-              onClick={() => navigate('/admin/expenses')}
-            >
-              View all <FiChevronRight size={14} />
-            </button>
-          </div>
-          {recentExpenses.length ? (
-            <div className="space-y-3">
-              {recentExpenses.map((expense) => (
-                <div
-                  key={expense.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{expense.description}</p>
-                    <p className="text-xs text-gray-500">
-                      {expense.category || 'uncategorised'} •{' '}
-                      {new Date(expense.created_at || expense.updated_at || Date.now()).toLocaleDateString()}
-                    </p>
+              {/* Mobile Feed */}
+              <div className="sm:hidden divide-y divide-gray-700/30">
+                {recentTenants.map((tenant) => (
+                  <div key={tenant.id} className="p-4 space-y-3 hover:bg-gray-700/10 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-400 flex items-center justify-center text-[10px] font-black italic border border-teal-500/20">
+                          {tenant.name.charAt(0)}
+                        </div>
+                        <span className="font-bold text-white text-xs italic">{tenant.name}</span>
+                      </div>
+                      <span className="px-2 py-1 rounded-lg text-[8px] font-black bg-teal-500/10 text-teal-400 border border-teal-500/20 italic uppercase">
+                        {tenant.status}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-[9px] font-black uppercase italic text-gray-400">
+                      <span>Sector Identity</span>
+                      <span className="text-white">{tenant.unit}</span>
+                    </div>
                   </div>
-                  <div className="text-sm font-semibold text-rose-600">
-                    {formatCurrency(Number(expense.amount) || 0)}
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          {/* Recent Expenditure */}
+          <Card className="bg-gray-800/40 backdrop-blur-sm border-gray-700/50 overflow-hidden" hover={false}>
+            <div className="p-6 border-b border-gray-700/50 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-black text-white uppercase italic tracking-tight">Expenditure Log</h2>
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic">Capital outflow monitoring</p>
+              </div>
+              <Button variant="outline" className="px-6 py-2.5 rounded-xl border-gray-700 text-[10px]">Full Log</Button>
+            </div>
+
+            <div className="divide-y divide-gray-700/30">
+              {recentExpenses.map((expense) => (
+                <div key={expense.id} className="p-6 group/item hover:bg-gray-700/20 transition-all">
+                  <div className="flex items-start justify-between gap-6">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20 group-hover/item:scale-110 transition-transform">
+                        <TrendingDown size={20} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-white text-sm italic mb-1 truncate">{expense.description}</h4>
+                        <div className="flex items-center gap-3 text-[10px] font-black text-gray-500 uppercase tracking-widest italic">
+                          <span className="text-rose-400/80">{expense.category}</span>
+                          <span>•</span>
+                          <span>{new Date(expense.date).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-black text-white mb-2 italic tracking-tight">-{formatCurrency(expense.amount)}</p>
+                      <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase italic tracking-widest ${expense.status === 'paid' || expense.status === 'completed'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        }`}>
+                        {expense.status}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="py-6 text-center text-gray-500">No expense activity recorded.</div>
-          )}
-        </Card>
-      </div>
-
-      <Card className="p-6 border rounded-xl shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Expense Status Breakdown</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[ 
-            { label: 'Total', value: expenseSummary.total, color: 'text-gray-900' },
-            { label: 'Paid', value: expenseSummary.paid, color: 'text-emerald-600' },
-            { label: 'Pending', value: expenseSummary.pending, color: 'text-amber-600' },
-            { label: 'Overdue', value: expenseSummary.overdue, color: 'text-rose-600' },
-          ].map((item) => (
-            <Card key={item.label} className="p-4 border rounded-lg shadow-sm">
-              <p className="text-xs uppercase tracking-wide text-gray-500">{item.label}</p>
-              <p className={`text-lg font-semibold ${item.color}`}>
-                {formatCurrency(item.value)}
-              </p>
-            </Card>
-          ))}
+          </Card>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };

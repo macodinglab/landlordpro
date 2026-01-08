@@ -7,8 +7,14 @@ import { router } from './routes/index';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { lazy } from 'react';
 
-function App() {
+const PaymentPage = lazy(() => import('./pages/adminPages/PaymentPage'));
+const DocumentPage = lazy(() => import('./pages/adminPages/Documents'));
+const StaffPage = lazy(() => import('./pages/adminPages/StaffPage'));
+const ReportsPage = lazy(() => import('./pages/adminPages/ReportsPage'));
+
+const App = () => {
   return (
     <Provider store={store}>
       <ErrorBoundary>
