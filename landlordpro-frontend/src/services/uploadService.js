@@ -1,31 +1,18 @@
-import axios from 'axios';
+import apiClient from './apiClient';
 import { showError, showSuccess } from '../utils/toastHelper';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL + '/api/upload';
-
-const axiosInstance = axios.create({
-    baseURL: API_BASE_URL,
-    timeout: 15000,
-});
-
-axiosInstance.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token');
-        if (token) config.headers.Authorization = `Bearer ${token}`;
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
+const BASE_PATH = '/upload';
 
 export const uploadImage = async (file) => {
     const formData = new FormData();
     formData.append('image', file);
 
     try {
-        const { data } = await axiosInstance.post('/', formData, {
+        const { data } = await apiClient.post(BASE_PATH, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
+            timeout: 15000,
         });
         showSuccess('Image uploaded successfully');
         return data.fileUrl; // This should be the full URL

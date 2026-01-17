@@ -1,7 +1,7 @@
-import axios from 'axios';
+import apiClient from './apiClient';
 
 /* -------------------- Constants -------------------- */
-const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/expenses`;
+const BASE_PATH = '/expenses';
 
 const STORAGE_KEYS = {
   TOKEN: 'token',
@@ -21,43 +21,26 @@ class ApiError extends Error {
     this.data = response?.data;
     this.originalError = originalError;
   }
-  
+
   isNetworkError() {
     return !this.status;
   }
-  
+
   isServerError() {
     return this.status >= 500;
   }
-  
+
   isClientError() {
     return this.status >= 400 && this.status < 500;
   }
 }
 
-/* -------------------- Axios Instance -------------------- */
-const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000, // 30 seconds
-  headers: { 'Content-Type': 'application/json' },
-});
-
-/* -------------------- REQUEST INTERCEPTOR -------------------- */
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem(STORAGE_KEYS.TOKEN)?.trim();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-/* -------------------- RESPONSE INTERCEPTOR -------------------- */
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  (error) => {
+/* -------------------- Safe Request Wrapper -------------------- */
+// Wraps apiClient calls to preserve the existing error handling contract
+const safeRequest = async (requestFn) => {
+  try {
+    return await requestFn();
+  } catch (error) {
     // Handle 401 Unauthorized
     if (error.response?.status === 401) {
       localStorage.removeItem(STORAGE_KEYS.TOKEN);
@@ -65,14 +48,11 @@ axiosInstance.interceptors.response.use(
       window.dispatchEvent(new CustomEvent('auth:logout', {
         detail: { message: 'Session expired. Please login again.' }
       }));
-      // Optional: Still redirect but in a more controlled way
-      // setTimeout(() => window.location.href = ROUTES.LOGIN, 100);
     }
-    
     // Return custom error
-    return Promise.reject(new ApiError(error.response, error));
+    throw new ApiError(error.response, error);
   }
-);
+};
 
 /* -------------------- HELPER FUNCTIONS -------------------- */
 
@@ -95,11 +75,11 @@ export const calculateVAT = (amount, vatRate) => {
  */
 const toFormData = (data) => {
   const formData = new FormData();
-  
+
   Object.entries(data).forEach(([key, value]) => {
     // Skip only null and undefined, allow empty strings
     if (value === null || value === undefined) return;
-    
+
     if (value instanceof File) {
       // Files use their expected key name
       formData.append(key, value);
@@ -119,7 +99,7 @@ const toFormData = (data) => {
       formData.append(key, String(value));
     }
   });
-  
+
   return formData;
 };
 
@@ -166,21 +146,6 @@ const hasFiles = (data) => {
 
 /**
  * Get all expenses with optional filters and pagination
- * @param {Object} options - Filter and pagination options
- * @param {number} [options.page=1] - Page number
- * @param {number} [options.limit=10] - Items per page
- * @param {string} [options.propertyId] - Filter by property
- * @param {string} [options.localId] - Filter by local
- * @param {string} [options.category] - Filter by category
- * @param {string} [options.paymentStatus] - Filter by payment status
- * @param {string} [options.currency] - Filter by currency
- * @param {string} [options.startDate] - Filter by start date
- * @param {string} [options.endDate] - Filter by end date
- * @param {string} [options.minAmount] - Minimum amount
- * @param {string} [options.maxAmount] - Maximum amount
- * @param {string} [options.search] - Search term
- * @param {boolean} [options.includeDeleted] - Include soft-deleted expenses
- * @param {AbortSignal} [signal] - Abort signal for cancellation
  * @returns {Promise<Object>} Expenses with pagination info
  * @throws {ApiError} When request fails
  */
@@ -214,26 +179,22 @@ export const getAllExpenses = async ({
   if (search) params.search = search;
   if (includeDeleted) params.includeDeleted = includeDeleted;
 
-  const response = await axiosInstance.get('/', { params, signal });
+  const response = await safeRequest(() => apiClient.get(BASE_PATH, { params, signal }));
   return unwrapResponse(response);
 };
 
 /**
  * Get a single expense by ID
- * @param {string} id - Expense ID
- * @param {AbortSignal} [signal] - Abort signal for cancellation
  * @returns {Promise<Object>} Expense data
  * @throws {ApiError} When request fails
  */
 export const getExpenseById = async (id, signal = null) => {
-  const response = await axiosInstance.get(`/${id}`, { signal });
+  const response = await safeRequest(() => apiClient.get(`${BASE_PATH}/${id}`, { signal }));
   return unwrapResponse(response).data;
 };
 
 /**
  * Create a new expense
- * @param {Object|FormData} data - Expense data or FormData
- * @param {Function} [onProgress] - Upload progress callback
  * @returns {Promise<Object>} Created expense data
  * @throws {ApiError} When request fails
  */
@@ -245,7 +206,7 @@ export const createExpense = async (data, onProgress = null) => {
 
   // Prepare data - convert to backend format
   let payload;
-  
+
   if (data instanceof FormData) {
     payload = data;
   } else {
@@ -266,33 +227,30 @@ export const createExpense = async (data, onProgress = null) => {
       vendor: data.vendor || null,
       invoice_number: data.invoiceNumber || null,
     };
-    
+
     // Add file if present
     if (data.proofFile) {
       cleanData.proof_file = data.proofFile;
     }
-    
+
     payload = toFormData(cleanData);
   }
-  
+
   logFormData(payload, 'CREATE EXPENSE');
-  
-  const response = await axiosInstance.post('/', payload, {
+
+  const response = await safeRequest(() => apiClient.post(BASE_PATH, payload, {
     headers: { 'Content-Type': 'multipart/form-data' },
     onUploadProgress: onProgress ? (progressEvent) => {
       const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
       onProgress(percentCompleted);
     } : undefined,
-  });
-  
+  }));
+
   return unwrapResponse(response).data;
 };
 
 /**
  * Update an existing expense
- * @param {string} id - Expense ID
- * @param {Object|FormData} data - Updated expense data
- * @param {Function} [onProgress] - Upload progress callback
  * @returns {Promise<Object>} Updated expense data
  * @throws {ApiError} When request fails
  */
@@ -304,10 +262,10 @@ export const updateExpense = async (id, data, onProgress = null) => {
 
   // Detect if we have files - if not, send as JSON for efficiency
   const hasFileData = data instanceof FormData || hasFiles(data);
-  
+
   if (hasFileData) {
     let payload;
-    
+
     if (data instanceof FormData) {
       payload = data;
     } else {
@@ -328,25 +286,25 @@ export const updateExpense = async (id, data, onProgress = null) => {
         vendor: data.vendor || null,
         invoice_number: data.invoiceNumber || null,
       };
-      
+
       // Add file if present
       if (data.proofFile) {
         cleanData.proof_file = data.proofFile;
       }
-      
+
       payload = toFormData(cleanData);
     }
-    
+
     logFormData(payload, 'UPDATE EXPENSE');
-    
-    const response = await axiosInstance.put(`/${id}`, payload, {
+
+    const response = await safeRequest(() => apiClient.put(`${BASE_PATH}/${id}`, payload, {
       headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: onProgress ? (progressEvent) => {
         const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
         onProgress(percentCompleted);
       } : undefined,
-    });
-    
+    }));
+
     return unwrapResponse(response).data;
   } else {
     // Send as JSON if no files - convert keys to snake_case
@@ -366,136 +324,114 @@ export const updateExpense = async (id, data, onProgress = null) => {
       vendor: data.vendor || null,
       invoice_number: data.invoiceNumber || null,
     };
-    
-    const response = await axiosInstance.put(`/${id}`, jsonPayload);
+
+    const response = await safeRequest(() => apiClient.put(`${BASE_PATH}/${id}`, jsonPayload));
     return unwrapResponse(response).data;
   }
 };
 
 /**
  * Soft delete an expense
- * @param {string} id - Expense ID
  * @returns {Promise<Object>} Deletion result
  * @throws {ApiError} When request fails
  */
 export const deleteExpense = async (id) => {
-  const response = await axiosInstance.delete(`/${id}`);
+  const response = await safeRequest(() => apiClient.delete(`${BASE_PATH}/${id}`));
   return unwrapResponse(response);
 };
 
 /**
  * Hard delete an expense permanently
- * @param {string} id - Expense ID
  * @returns {Promise<Object>} Deletion result
  * @throws {ApiError} When request fails
  */
 export const hardDeleteExpense = async (id) => {
-  const response = await axiosInstance.delete(`/${id}/hard`);
+  const response = await safeRequest(() => apiClient.delete(`${BASE_PATH}/${id}/hard`));
   return unwrapResponse(response);
 };
 
 /**
  * Restore a soft-deleted expense
- * @param {string} id - Expense ID
  * @returns {Promise<Object>} Restored expense data
  * @throws {ApiError} When request fails
  */
 export const restoreExpense = async (id) => {
-  const response = await axiosInstance.patch(`/${id}/restore`);
+  const response = await safeRequest(() => apiClient.patch(`${BASE_PATH}/${id}/restore`));
   return unwrapResponse(response).data;
 };
 
 /**
  * Approve an expense
- * @param {string} id - Expense ID
- * @param {string} approvedBy - User ID who approved
  * @returns {Promise<Object>} Approved expense data
  * @throws {ApiError} When request fails
  */
 export const approveExpense = async (id, approvedBy) => {
-  const response = await axiosInstance.patch(`/${id}/approve`, { approvedBy });
+  const response = await safeRequest(() => apiClient.patch(`${BASE_PATH}/${id}/approve`, { approvedBy }));
   return unwrapResponse(response).data;
 };
 
 /**
  * Get expense summary / analytics
- * @param {Object} [filters] - Optional filters
- * @param {AbortSignal} [signal] - Abort signal for cancellation
  * @returns {Promise<Object>} Summary data
  * @throws {ApiError} When request fails
  */
 export const getExpenseSummary = async (filters = {}, signal = null) => {
-  const response = await axiosInstance.get('/summary', { params: filters, signal });
+  const response = await safeRequest(() => apiClient.get(`${BASE_PATH}/summary`, { params: filters, signal }));
   return unwrapResponse(response).data;
 };
 
 /**
  * Get overdue expenses
- * @param {Object} [filters] - Optional filters
- * @param {AbortSignal} [signal] - Abort signal for cancellation
  * @returns {Promise<Object>} Overdue expenses
  * @throws {ApiError} When request fails
  */
 export const getOverdueExpenses = async (filters = {}, signal = null) => {
-  const response = await axiosInstance.get('/overdue', { params: filters, signal });
+  const response = await safeRequest(() => apiClient.get(`${BASE_PATH}/overdue`, { params: filters, signal }));
   return unwrapResponse(response).data;
 };
 
 /**
  * Get expenses by entity (property or local)
- * @param {string} entityType - 'property' or 'local'
- * @param {string} entityId - Entity ID
- * @param {Object} [filters] - Optional filters
- * @param {AbortSignal} [signal] - Abort signal for cancellation
  * @returns {Promise<Object>} Entity expenses
  * @throws {ApiError} When request fails
  */
 export const getExpensesByEntity = async (entityType, entityId, filters = {}, signal = null) => {
-  const response = await axiosInstance.get(`/entity/${entityType}/${entityId}`, { 
+  const response = await safeRequest(() => apiClient.get(`${BASE_PATH}/entity/${entityType}/${entityId}`, {
     params: filters,
-    signal 
-  });
+    signal
+  }));
   return unwrapResponse(response).data;
 };
 
 /**
  * Bulk update payment status for multiple expenses
- * @param {Object} params - Bulk update parameters
- * @param {string[]} params.expenseIds - Array of expense IDs
- * @param {string} params.paymentStatus - New payment status
- * @param {string} [params.paymentDate] - Payment date
- * @param {string} [params.paymentMethod] - Payment method
  * @returns {Promise<Object>} Update result
  * @throws {ApiError} When request fails
  */
 export const bulkUpdatePaymentStatus = async ({ expenseIds, paymentStatus, paymentDate, paymentMethod }) => {
-  const response = await axiosInstance.patch('/bulk/payment-status', {
+  const response = await safeRequest(() => apiClient.patch(`${BASE_PATH}/bulk/payment-status`, {
     expenseIds,
     paymentStatus,
     paymentDate,
     paymentMethod,
-  });
+  }));
   return unwrapResponse(response);
 };
 
 /**
  * Get proof file as blob
- * @param {string} expenseId - Expense ID
- * @param {string} filename - Proof filename
  * @returns {Promise<Blob>} File blob
  * @throws {ApiError} When request fails
  */
 export const getProofFile = async (expenseId, filename) => {
-  const response = await axiosInstance.get(`/${expenseId}/proof/${filename}`, {
+  const response = await safeRequest(() => apiClient.get(`${BASE_PATH}/${expenseId}/proof/${filename}`, {
     responseType: 'blob',
-  });
+  }));
   return response.data;
 };
 
 /**
  * Download proof file
- * @param {string} expenseId - Expense ID
- * @param {string} filename - Proof filename
  * @returns {Promise<void>}
  * @throws {ApiError} When request fails
  */
@@ -513,8 +449,6 @@ export const downloadProof = async (expenseId, filename) => {
 
 /**
  * Get proof file preview URL
- * @param {string} expenseId - Expense ID
- * @param {string} filename - Proof filename
  * @returns {Promise<string>} Object URL (remember to revoke with URL.revokeObjectURL)
  * @throws {ApiError} When request fails
  */
@@ -524,4 +458,4 @@ export const getProofPreviewUrl = async (expenseId, filename) => {
 };
 
 /* -------------------- EXPORT FOR TESTING -------------------- */
-export const _axiosInstance = axiosInstance;
+export const _axiosInstance = apiClient;

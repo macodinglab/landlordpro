@@ -1,30 +1,5 @@
 // src/services/userService.js
-import axios from 'axios';
-import { getToken } from './AuthService';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/api`
-  : 'http://localhost:3000/api';
-
-/* ----------------------------------------
-   ⚙️ Axios Instance
----------------------------------------- */
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-});
-
-/* ----------------------------------------
-   🔐 Attach Token Automatically
----------------------------------------- */
-api.interceptors.request.use(
-  (config) => {
-    const token = getToken();
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+import apiClient from './apiClient';
 
 /* ----------------------------------------
    ⚠️ Centralized Error Handler
@@ -49,7 +24,7 @@ const handleRequest = async (promise, customErrorMsg = null) => {
    👥 USER MANAGEMENT
 ================================ */
 export const getAllUsers = async (page = 1, limit = 10) => {
-  const data = await handleRequest(api.get(`/users?page=${page}&limit=${limit}`));
+  const data = await handleRequest(apiClient.get(`/users?page=${page}&limit=${limit}`));
   return {
     users: data.rows || [],
     total: data.count || 0,
@@ -59,29 +34,29 @@ export const getAllUsers = async (page = 1, limit = 10) => {
 };
 
 export const updateUser = (id, userObj) =>
-  handleRequest(api.put(`/users/${id}`, userObj));
+  handleRequest(apiClient.put(`/users/${id}`, userObj));
 
 export const disableUser = (id) =>
-  handleRequest(api.put(`/users/${id}/disable`));
+  handleRequest(apiClient.put(`/users/${id}/disable`));
 
 export const enableUser = (id) =>
-  handleRequest(api.put(`/users/${id}/enable`));
+  handleRequest(apiClient.put(`/users/${id}/enable`));
 
 export const registerUser = (userObj) =>
-  handleRequest(api.post('/auth/register', userObj));
+  handleRequest(apiClient.post('/auth/register', userObj));
 
 /* ================================
    👤 PROFILE
 ================================ */
-export const getProfile = () => handleRequest(api.get('/profile'));
+export const getProfile = () => handleRequest(apiClient.get('/profile'));
 
 // Update profile with only the fields backend expects
 export const updateProfile = (data) =>
-  handleRequest(api.put('/profile', data));
+  handleRequest(apiClient.put('/profile', data));
 
 // Update password
 export const updatePassword = (payload) =>
-  handleRequest(api.put('/profile/password', payload));
+  handleRequest(apiClient.put('/profile/password', payload));
 
 // Upload avatar/profile picture
 export const uploadAvatar = (file) => {
@@ -89,7 +64,7 @@ export const uploadAvatar = (file) => {
   formData.append('avatar', file);
 
   return handleRequest(
-    api.put('/profile/picture', formData, {
+    apiClient.put('/profile/picture', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   );
@@ -99,19 +74,19 @@ export const uploadAvatar = (file) => {
    🔔 NOTIFICATIONS
 ================================ */
 export const getNotifications = (page = 1, limit = 10) =>
-  handleRequest(api.get(`/notifications?page=${page}&limit=${limit}`));
+  handleRequest(apiClient.get(`/notifications?page=${page}&limit=${limit}`));
 
 export const getUnreadNotifications = (page = 1, limit = 10) =>
-  handleRequest(api.get(`/notifications/unread?page=${page}&limit=${limit}`));
+  handleRequest(apiClient.get(`/notifications/unread?page=${page}&limit=${limit}`));
 
 export const markNotificationRead = (id) =>
-  handleRequest(api.put(`/notifications/${id}/read`));
+  handleRequest(apiClient.put(`/notifications/${id}/read`));
 
 /* ================================
    🔑 AUTH (Login/Register)
 ================================ */
 export const loginUser = (email, password) =>
-  handleRequest(api.post('/auth/login', { email, password }));
+  handleRequest(apiClient.post('/auth/login', { email, password }));
 
 export const getAllManagers = async () => {
   const { users } = await getAllUsers(1, 1000);

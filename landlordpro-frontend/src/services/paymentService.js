@@ -1,41 +1,23 @@
-import axios from 'axios';
+import apiClient from './apiClient';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL + '/api/payments';
+const BASE_PATH = '/payments';
 
-const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
-});
-
-// Attach token automatically
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Response interceptor
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) console.error('Unauthorized: please log in.');
-    return Promise.reject(error.response?.data || error);
-  }
-);
+// Helper to construct safe URLs for images/proofs
+const getSafeBaseUrl = () => {
+  const rawUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  return rawUrl.trim().replace(/\/+$/, '');
+};
 
 // Get all payments (optional search term)
 export const getAllPayments = async (term = '') => {
   const params = term ? { term } : {};
-  const response = await axiosInstance.get('/', { params });
+  const response = await apiClient.get(BASE_PATH, { params });
   return response.data?.data || [];
 };
 
 // Get payment by ID
 export const getPaymentById = async (id) => {
-  const response = await axiosInstance.get(`/${id}`);
+  const response = await apiClient.get(`${BASE_PATH}/${id}`);
   return response.data?.data || null;
 };
 
@@ -50,7 +32,7 @@ export const createPayment = async (data) => {
   if (data.propertyId) formData.append('propertyId', data.propertyId);
   if (data.proof) formData.append('proof', data.proof);
 
-  const response = await axiosInstance.post('/', formData, {
+  const response = await apiClient.post(BASE_PATH, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data?.data || null;
@@ -67,7 +49,7 @@ export const updatePayment = async (id, data) => {
   if (data.propertyId) formData.append('propertyId', data.propertyId);
   if (data.proof) formData.append('proof', data.proof);
 
-  const response = await axiosInstance.put(`/${id}`, formData, {
+  const response = await apiClient.put(`${BASE_PATH}/${id}`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data?.data || null;
@@ -75,18 +57,19 @@ export const updatePayment = async (id, data) => {
 
 // Soft delete payment
 export const softDeletePayment = async (id) => {
-  const response = await axiosInstance.delete(`/${id}`);
+  const response = await apiClient.delete(`${BASE_PATH}/${id}`);
   return response.data?.message || 'Deleted successfully';
 };
 
 // Restore soft-deleted payment
 export const restorePayment = async (id) => {
-  const response = await axiosInstance.patch(`/${id}/restore`);
+  const response = await apiClient.patch(`${BASE_PATH}/${id}/restore`);
   return response.data?.data || null;
 };
 
 // Get payment proof URL
 export const getPaymentProofUrl = (paymentId, filename) => {
-  return `${API_BASE_URL}/proof/${paymentId}/${filename}`;
+  // Use safe base URL construction identical to apiClient
+  return `${getSafeBaseUrl()}/api/payments/proof/${paymentId}/${filename}`;
 };
 

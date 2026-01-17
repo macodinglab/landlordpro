@@ -1,37 +1,11 @@
-import axios from 'axios';
+import apiClient from './apiClient';
 import { showError, showSuccess } from '../utils/toastHelper';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL + '/api/staff';
-
-const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
-  timeout: 10000,
-});
-
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    let message = 'An error occurred';
-    if (error.response?.data?.message) message = error.response.data.message;
-    else if (error.message) message = error.message;
-    console.error('Staff API error:', error.response || error);
-    return Promise.reject({ ...error.response?.data, message });
-  }
-);
+const BASE_PATH = '/staff';
 
 export const getAllStaff = async (page = 1, limit = 10, search = '', includeDeleted = false) => {
   try {
-    const { data } = await axiosInstance.get('/', { params: { page, limit, search, includeDeleted } });
+    const { data } = await apiClient.get(BASE_PATH, { params: { page, limit, search, includeDeleted } });
     return {
       staff: data.staff || [],
       totalPages: data.totalPages || 1,
@@ -45,7 +19,7 @@ export const getAllStaff = async (page = 1, limit = 10, search = '', includeDele
 
 export const createStaff = async (payload) => {
   try {
-    const { data } = await axiosInstance.post('/', payload);
+    const { data } = await apiClient.post(BASE_PATH, payload);
     showSuccess(data.message || 'Staff member created successfully');
     return data.staff;
   } catch (err) {
@@ -56,7 +30,7 @@ export const createStaff = async (payload) => {
 
 export const updateStaff = async (id, payload) => {
   try {
-    const { data } = await axiosInstance.put(`/${id}`, payload);
+    const { data } = await apiClient.put(`${BASE_PATH}/${id}`, payload);
     showSuccess(data.message || 'Staff member updated successfully');
     return data.staff;
   } catch (err) {
@@ -67,7 +41,7 @@ export const updateStaff = async (id, payload) => {
 
 export const deleteStaff = async (id) => {
   try {
-    const { data } = await axiosInstance.delete(`/${id}`);
+    const { data } = await apiClient.delete(`${BASE_PATH}/${id}`);
     showSuccess(data.message || 'Staff member deleted successfully');
     return data;
   } catch (err) {
@@ -78,7 +52,7 @@ export const deleteStaff = async (id) => {
 
 export const restoreStaff = async (id) => {
   try {
-    const { data } = await axiosInstance.patch(`/${id}/restore`);
+    const { data } = await apiClient.patch(`${BASE_PATH}/${id}/restore`);
     showSuccess(data.message || 'Staff member restored successfully');
     return data.staff;
   } catch (err) {

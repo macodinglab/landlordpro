@@ -1,37 +1,7 @@
-import axios from 'axios';
+import apiClient from './apiClient';
 
-// ✅ Base URL from environment variable
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000') + '/api/floors';
-
-const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
-});
-
-// ------------------- INTERCEPTORS -------------------
-
-// Add token automatically to all requests
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Global response error handling
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      console.error('Unauthorized: please log in.');
-      // Optional: redirect to login page
-      // window.location.href = '/login';
-    }
-    return Promise.reject(error.response?.data || error);
-  }
-);
+// ✅ Base URL using apiClient
+const BASE_PATH = '/floors';
 
 // ------------------- CRUD OPERATIONS -------------------
 
@@ -42,7 +12,7 @@ axiosInstance.interceptors.response.use(
  */
 export const getAllFloors = async (params = {}) => {
   try {
-    const response = await axiosInstance.get('/', { params });
+    const response = await apiClient.get(BASE_PATH, { params });
     return response.data;
   } catch (err) {
     throw new Error(err?.message || 'Failed to fetch floors');
@@ -51,13 +21,13 @@ export const getAllFloors = async (params = {}) => {
 
 /**
  * Get floors by property ID (full details with occupancy)
- * ✅ FIXED: Now uses correct endpoint and axiosInstance
+ * ✅ FIXED: Now uses correct endpoint and apiClient
  * @param {string} propertyId - Property ID
  * @returns {Promise<Object>} { success, total, property, data: [...floors] }
  */
 export const getFloorsByPropertyId = async (propertyId) => {
   try {
-    const response = await axiosInstance.get(`/property/${propertyId}`);
+    const response = await apiClient.get(`${BASE_PATH}/property/${propertyId}`);
     return response.data;
   } catch (err) {
     throw new Error(err?.message || `Failed to fetch floors for property ${propertyId}`);
@@ -71,7 +41,7 @@ export const getFloorsByPropertyId = async (propertyId) => {
  */
 export const getPropertyFloorsSimple = async (propertyId) => {
   try {
-    const response = await axiosInstance.get(`/property/${propertyId}/simple`);
+    const response = await apiClient.get(`${BASE_PATH}/property/${propertyId}/simple`);
     return response.data;
   } catch (err) {
     throw new Error(err?.message || `Failed to fetch simple floors list for property ${propertyId}`);
@@ -85,7 +55,7 @@ export const getPropertyFloorsSimple = async (propertyId) => {
  */
 export const getFloorById = async (id) => {
   try {
-    const response = await axiosInstance.get(`/${id}`);
+    const response = await apiClient.get(`${BASE_PATH}/${id}`);
     return response.data;
   } catch (err) {
     throw new Error(err?.message || `Failed to fetch floor with ID ${id}`);
@@ -99,7 +69,7 @@ export const getFloorById = async (id) => {
  */
 export const createFloor = async (data) => {
   try {
-    const response = await axiosInstance.post('/', data);
+    const response = await apiClient.post(BASE_PATH, data);
     return response.data;
   } catch (err) {
     throw new Error(err?.message || 'Failed to create floor');
@@ -114,7 +84,7 @@ export const createFloor = async (data) => {
  */
 export const updateFloor = async (id, data) => {
   try {
-    const response = await axiosInstance.put(`/${id}`, data);
+    const response = await apiClient.put(`${BASE_PATH}/${id}`, data);
     return response.data;
   } catch (err) {
     throw new Error(err?.message || `Failed to update floor with ID ${id}`);
@@ -128,7 +98,7 @@ export const updateFloor = async (id, data) => {
  */
 export const deleteFloor = async (id) => {
   try {
-    const response = await axiosInstance.delete(`/${id}`);
+    const response = await apiClient.delete(`${BASE_PATH}/${id}`);
     return response.data;
   } catch (err) {
     throw new Error(err?.message || `Failed to delete floor with ID ${id}`);
@@ -144,7 +114,7 @@ export const deleteFloor = async (id) => {
  */
 export const getFloorsWithStats = async (params = {}) => {
   try {
-    const response = await axiosInstance.get('/stats', { params });
+    const response = await apiClient.get(`${BASE_PATH}/stats`, { params });
     return response.data;
   } catch (err) {
     throw new Error(err?.message || 'Failed to fetch floors with statistics');
@@ -159,7 +129,7 @@ export const getFloorsWithStats = async (params = {}) => {
  */
 export const getFloorsSummary = async (params = {}) => {
   try {
-    const response = await axiosInstance.get('/summary', { params });
+    const response = await apiClient.get(`${BASE_PATH}/summary`, { params });
     return response.data;
   } catch (err) {
     throw new Error(err?.message || 'Failed to fetch floors summary');
@@ -173,7 +143,7 @@ export const getFloorsSummary = async (params = {}) => {
  */
 export const getAllFloorsOccupancy = async (params = {}) => {
   try {
-    const response = await axiosInstance.get('/reports/occupancy', { params });
+    const response = await apiClient.get(`${BASE_PATH}/reports/occupancy`, { params });
     return response.data;
   } catch (err) {
     throw new Error(err?.message || 'Failed to fetch floors occupancy report');
@@ -187,7 +157,7 @@ export const getAllFloorsOccupancy = async (params = {}) => {
  */
 export const getFloorOccupancy = async (id) => {
   try {
-    const response = await axiosInstance.get(`/${id}/occupancy`);
+    const response = await apiClient.get(`${BASE_PATH}/${id}/occupancy`);
     return response.data;
   } catch (err) {
     throw new Error(err?.message || `Failed to fetch occupancy report for floor ${id}`);
@@ -203,11 +173,11 @@ export const getFloorOccupancy = async (id) => {
  */
 export const extractFloorsData = (response) => {
   if (!response) return [];
-  
+
   // Handle different response structures
-  if (Array.isArray(response)) return response;        
+  if (Array.isArray(response)) return response;
   if (Array.isArray(response.data)) return response.data;
-  if (Array.isArray(response.floors)) return response.floors; 
+  if (Array.isArray(response.floors)) return response.floors;
 
   // Fallback to empty array
   return [];
@@ -248,11 +218,11 @@ export const getTotalLocals = (floors) => {
  */
 export const getAverageOccupancy = (floors) => {
   if (!Array.isArray(floors) || floors.length === 0) return 0;
-  
+
   const totalOccupancy = floors.reduce((sum, floor) => {
     return sum + (floor.occupancy?.occupancy_rate || floor.occupancy_rate || 0);
   }, 0);
-  
+
   return parseFloat((totalOccupancy / floors.length).toFixed(2));
 };
 
@@ -267,13 +237,13 @@ export default {
   createFloor,
   updateFloor,
   deleteFloor,
-  
+
   // Analytics & Reports
   getFloorsWithStats,
   getFloorsSummary,
   getAllFloorsOccupancy,
   getFloorOccupancy,
-  
+
   // Utilities
   extractFloorsData,
   isFilteredByProperty,

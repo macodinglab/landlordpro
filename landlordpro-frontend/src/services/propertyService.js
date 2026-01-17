@@ -1,13 +1,7 @@
-import axios from 'axios';
+import apiClient from './apiClient';
 import { showSuccess, showError } from '../utils/toastHelper';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL + '/api/properties';
-
-const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
-  timeout: 10000
-});
+const BASE_PATH = '/properties';
 
 // ------------------- HELPER: Extract Error Message -------------------
 const getErrorMessage = (error) => {
@@ -17,59 +11,15 @@ const getErrorMessage = (error) => {
   return 'An unexpected error occurred';
 };
 
-// Attach token automatically
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Global error handling
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    let errorMessage = 'An error occurred';
-
-    if (error.code === 'ECONNABORTED') {
-      errorMessage = 'Request timeout. Please try again.';
-    } else if (!error.response) {
-      errorMessage = 'Network error. Please check your connection.';
-    } else if (error.response?.status === 401) {
-      errorMessage = 'Unauthorized. Please log in.';
-      // Optional: Redirect to login page
-      // window.location.href = '/login';
-    } else if (error.response?.status === 403) {
-      errorMessage = 'Access denied.';
-    } else if (error.response?.status === 404) {
-      errorMessage = error.response?.data?.message || 'Resource not found.';
-    } else if (error.response?.status >= 500) {
-      errorMessage = 'Server error. Please try again later.';
-    } else if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    }
-
-    console.error('API Error:', {
-      status: error.response?.status,
-      data: error.response?.data,
-      message: errorMessage
-    });
-    
-    return Promise.reject(error.response?.data || error);
-  }
-);
-
 // ================= API FUNCTIONS ================= //
 
 // Get all properties with pagination
 export const getAllProperties = async (page = 1, limit = 10) => {
   try {
-    const { data } = await axiosInstance.get('/', { params: { page, limit } });
-    
+    const { data } = await apiClient.get(BASE_PATH, { params: { page, limit } });
+
     console.log('getAllProperties response:', data);
-    
+
     // Handle different possible response structures
     if (data.data && Array.isArray(data.data.properties)) {
       // Structure: { data: { properties: [], totalPages, page } }
@@ -125,9 +75,9 @@ export const getAllProperties = async (page = 1, limit = 10) => {
 export const getPropertyById = async (id) => {
   try {
     console.log('getPropertyById called with id:', id);
-    const { data } = await axiosInstance.get(`/${id}`);
+    const { data } = await apiClient.get(`${BASE_PATH}/${id}`);
     console.log('getPropertyById response:', data);
-    
+
     // Handle different response structures
     if (data.data) {
       return data.data;
@@ -137,7 +87,7 @@ export const getPropertyById = async (id) => {
       // Direct property object
       return data;
     }
-    
+
     return null;
   } catch (err) {
     console.error('getPropertyById error:', {
@@ -155,7 +105,7 @@ export const getPropertyById = async (id) => {
 // Create a new property
 export const createProperty = async (propertyData, refreshCallback) => {
   try {
-    const { data } = await axiosInstance.post('/', propertyData);
+    const { data } = await apiClient.post(BASE_PATH, propertyData);
     showSuccess(data.message || 'Property created successfully.');
     if (refreshCallback && typeof refreshCallback === 'function') {
       refreshCallback();
@@ -172,7 +122,7 @@ export const createProperty = async (propertyData, refreshCallback) => {
 // Update a property
 export const updateProperty = async (id, propertyData, refreshCallback) => {
   try {
-    const { data } = await axiosInstance.put(`/${id}`, propertyData);
+    const { data } = await apiClient.put(`${BASE_PATH}/${id}`, propertyData);
     showSuccess(data.message || 'Property updated successfully.');
     if (refreshCallback && typeof refreshCallback === 'function') {
       refreshCallback();
@@ -189,7 +139,7 @@ export const updateProperty = async (id, propertyData, refreshCallback) => {
 // Delete (soft delete) a property
 export const deleteProperty = async (id, refreshCallback) => {
   try {
-    const { data } = await axiosInstance.delete(`/${id}`);
+    const { data } = await apiClient.delete(`${BASE_PATH}/${id}`);
     showSuccess(data.message || 'Property deleted successfully.');
     if (refreshCallback && typeof refreshCallback === 'function') {
       refreshCallback();
@@ -209,9 +159,9 @@ export const deleteProperty = async (id, refreshCallback) => {
 export const getFloorsByPropertyId = async (propertyId) => {
   try {
     console.log('getFloorsByPropertyId called with propertyId:', propertyId);
-    const { data } = await axiosInstance.get(`/${propertyId}/floors`);
+    const { data } = await apiClient.get(`${BASE_PATH}/${propertyId}/floors`);
     console.log('getFloorsByPropertyId raw response:', data);
-    
+
     // Handle different response structures for floors
     // ✅ Match the new backend structure: { floors: [...], property: {...} }
     if (data.data && Array.isArray(data.data.floors)) {
@@ -249,9 +199,9 @@ export const getFloorsByPropertyId = async (propertyId) => {
 export const getLocalsByPropertyId = async (propertyId) => {
   try {
     console.log('getLocalsByPropertyId called with propertyId:', propertyId);
-    const { data } = await axiosInstance.get(`/${propertyId}/locals`);
+    const { data } = await apiClient.get(`${BASE_PATH}/${propertyId}/locals`);
     console.log('getLocalsByPropertyId response:', data);
-    
+
     // Handle different response structures for locals
     if (Array.isArray(data.data)) {
       return data.data;
@@ -285,9 +235,9 @@ export const assignManagerToProperty = async (propertyId, managerId, refreshCall
   }
 
   try {
-    const { data } = await axiosInstance.patch(`/${propertyId}/assign-manager`, { manager_id: managerId });
+    const { data } = await apiClient.patch(`${BASE_PATH}/${propertyId}/assign-manager`, { manager_id: managerId });
     showSuccess(data.message || 'Manager assigned to property successfully.');
-    
+
     if (refreshCallback && typeof refreshCallback === 'function') {
       refreshCallback();
     }

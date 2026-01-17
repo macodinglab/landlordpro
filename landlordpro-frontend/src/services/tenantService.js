@@ -1,37 +1,6 @@
-import axios from 'axios';
+import apiClient from './apiClient';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL + '/api/tenants';
-
-const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
-});
-
-// 🔐 Include JWT token in every request
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// ⚠️ Handle global 401 errors (optional redirect to login)
-axiosInstance.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      console.error('Unauthorized: please log in.');
-      localStorage.removeItem('token');
-      // Optionally redirect
-      // window.location.href = '/login';
-    }
-
-    const errMessage = error.response?.data?.message || 'Something went wrong';
-    return Promise.reject({ message: errMessage, status: error.response?.status || 500 });
-  }
-);
+const BASE_PATH = '/tenants';
 
 /**
  * 📄 Get all tenants (with pagination and optional search)
@@ -43,7 +12,7 @@ export const getAllTenants = async (page = 1, limit = 10, search = '') => {
   const params = { page, limit };
   if (search) params.search = search;
 
-  const response = await axiosInstance.get('/', { params });
+  const response = await apiClient.get(BASE_PATH, { params });
   return response.data; // { tenants, totalPages, page }
 };
 
@@ -52,7 +21,7 @@ export const getAllTenants = async (page = 1, limit = 10, search = '') => {
  * @param {string} id
  */
 export const getTenantById = async (id) => {
-  const response = await axiosInstance.get(`/${id}`);
+  const response = await apiClient.get(`${BASE_PATH}/${id}`);
   return response.data.tenant;
 };
 
@@ -61,7 +30,7 @@ export const getTenantById = async (id) => {
  * @param {object} data - { name, email, phone, company_name?, tin_number? }
  */
 export const createTenant = async (data) => {
-  const response = await axiosInstance.post('/', data);
+  const response = await apiClient.post(BASE_PATH, data);
   return response.data.tenant;
 };
 
@@ -71,7 +40,7 @@ export const createTenant = async (data) => {
  * @param {object} data - { name, email, phone, company_name?, tin_number? }
  */
 export const updateTenant = async (id, data) => {
-  const response = await axiosInstance.put(`/${id}`, data);
+  const response = await apiClient.put(`${BASE_PATH}/${id}`, data);
   return response.data.tenant;
 };
 
@@ -80,7 +49,7 @@ export const updateTenant = async (id, data) => {
  * @param {string} id
  */
 export const deleteTenant = async (id) => {
-  const response = await axiosInstance.delete(`/${id}`);
+  const response = await apiClient.delete(`${BASE_PATH}/${id}`);
   return response.data.message;
 };
 
@@ -89,6 +58,6 @@ export const deleteTenant = async (id) => {
  * @param {string} id
  */
 export const restoreTenant = async (id) => {
-  const response = await axiosInstance.patch(`/${id}/restore`);
+  const response = await apiClient.patch(`${BASE_PATH}/${id}/restore`);
   return response.data.tenant;
 };

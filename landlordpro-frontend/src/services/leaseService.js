@@ -1,13 +1,5 @@
 // leaseService.js
-import axios from 'axios';
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/api`
-  : '/api';
-
-const authHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem('token')}`,
-});
+import apiClient from './apiClient';
 
 const leaseService = {
   /**
@@ -18,9 +10,8 @@ const leaseService = {
       const params = new URLSearchParams({ page, limit });
       if (status) params.append('status', status);
 
-      const res = await axios.get(`${BASE_URL}/leases?${params.toString()}`, {
-        headers: authHeaders(),
-      });
+      // Using apiClient with relative path
+      const res = await apiClient.get(`/leases?${params.toString()}`);
 
       return res.data;
     } catch (err) {
@@ -34,9 +25,7 @@ const leaseService = {
    */
   getLeaseById: async (id) => {
     try {
-      const res = await axios.get(`${BASE_URL}/leases/${id}`, {
-        headers: authHeaders(),
-      });
+      const res = await apiClient.get(`/leases/${id}`);
       return res.data;
     } catch (err) {
       console.error(`❌ Failed to fetch lease ${id}:`, err);
@@ -58,9 +47,7 @@ const leaseService = {
         status: leaseData.status || 'active',
       };
 
-      const res = await axios.post(`${BASE_URL}/leases`, payload, {
-        headers: authHeaders(),
-      });
+      const res = await apiClient.post(`/leases`, payload);
 
       return res.data;
     } catch (err) {
@@ -83,9 +70,7 @@ const leaseService = {
         status: leaseData.status,
       };
 
-      const res = await axios.put(`${BASE_URL}/leases/${id}`, payload, {
-        headers: authHeaders(),
-      });
+      const res = await apiClient.put(`/leases/${id}`, payload);
 
       return res.data;
     } catch (err) {
@@ -99,9 +84,7 @@ const leaseService = {
    */
   deleteLease: async (id) => {
     try {
-      const res = await axios.delete(`${BASE_URL}/leases/${id}`, {
-        headers: authHeaders(),
-      });
+      const res = await apiClient.delete(`/leases/${id}`);
 
       return res.data;
     } catch (err) {
@@ -115,9 +98,7 @@ const leaseService = {
    */
   triggerExpiredLeases: async () => {
     try {
-      const res = await axios.post(`${BASE_URL}/leases/trigger-expired`, {}, {
-        headers: authHeaders(),
-      });
+      const res = await apiClient.post(`/leases/trigger-expired`, {});
 
       return res.data;
     } catch (err) {
@@ -131,8 +112,7 @@ const leaseService = {
    */
   downloadPdfReport: async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/leases/report/pdf`, {
-        headers: authHeaders(),
+      const res = await apiClient.get(`/leases/report/pdf`, {
         responseType: 'blob',
       });
 
