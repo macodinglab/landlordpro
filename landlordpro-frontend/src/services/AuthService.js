@@ -1,8 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/api`
-  : 'http://localhost:3000/api';
+import apiClient from './apiClient';
 
 /* ---------------------------
    🗝 Token Management
@@ -63,7 +59,8 @@ export const logout = () => {
 ---------------------------- */
 export const loginUser = async (email, password) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
+    // 🛡️ Safe: Uses .post('/auth/login')
+    const response = await apiClient.post('/auth/login', { email, password });
     const { token, user } = response.data || {};
     if (token) {
       storeToken(token);
@@ -78,10 +75,8 @@ export const loginUser = async (email, password) => {
 
 export const registerUser = async (userObj) => {
   try {
-    const token = getToken();
-    const response = await axios.post(`${API_BASE_URL}/auth/register`, userObj, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    // 🛡️ Safe: Token injected automatically by interceptor if present
+    const response = await apiClient.post('/auth/register', userObj);
     return response.data;
   } catch (err) {
     console.error('Registration failed:', err.response?.data?.message || err.message);
