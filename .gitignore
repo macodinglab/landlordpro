@@ -86,3 +86,6 @@ yarn-debug.log*
 yarn-error.log*
 *.tgz
 *.zip
+
+# ==================
+env_backend
