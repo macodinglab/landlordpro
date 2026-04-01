@@ -1,0 +1,205 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[none]{hyphenat}
+\usepackage{geometry}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{enumitem}
+
+% Define Brand Colors
+\definecolor{brandTeal}{HTML}{14b8a6}
+\definecolor{brandGray}{HTML}{0f172a}
+\definecolor{brandLight}{HTML}{f0fdfa} % Very light teal for boxes
+
+% Geometry setup
+\geometry{
+    left=25mm,
+    right=25mm,
+    top=25mm,
+    bottom=25mm,
+}
+
+% Header and Footer
+\pagestyle{fancy}
+\fancyhf{}
+\setlength{\headheight}{15pt} % Fix headheight warning
+\lhead{\textcolor{brandTeal}{\textbf{LandlordPro Customer Manual}}}
+\rhead{\thepage}
+\cfoot{\small \url{www.landlordpro.rw}}
+
+% Title Formatting
+\titleformat{\section}
+{\color{brandTeal}\normalfont\Large\bfseries}
+{\thesection}{1em}{}
+
+\titleformat{\subsection}
+{\color{brandGray}\normalfont\large\bfseries}
+{\thesubsection}{1em}{}
+
+% Tip Box
+\newtcolorbox{tipbox}{
+    colback=brandLight,
+    colframe=brandTeal,
+    title=\textbf{Pro Tip}, % Removed Unicode emoji
+    coltitle=white,
+    boxrule=0.5mm
+}
+
+% Title Page
+\title{
+    \vspace{2cm}
+    \textcolor{brandTeal}{\textbf{\Huge Welcome to LandlordPro}}\\
+    \vspace{0.5cm}
+    \textcolor{brandGray}{\Large The Easy Way to Manage Your Properties}\\
+    \vspace{2cm}
+    \textbf{Customer User Manual}\\
+    \small For Version 1.0\\
+    \vspace{1cm}
+    \url{www.landlordpro.rw}
+}
+\author{}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{Welcome Aboard!}
+Thank you for choosing **LandlordPro**. We built this system to help you manage your properties, tenants, and payments without the headache of spreadsheets or paperwork. 
+
+This guide is written in plain English to help you get started immediately. No technical skills required!
+
+\section{Getting Started}
+
+\subsection{Logging In}
+1. Open your web browser (like Chrome, Safari, or Edge).
+2. Type in the address: \textcolor{brandTeal}{\url{www.landlordpro.rw}}
+3. Enter your **Email Address** and **Password**.
+4. Click the teal **Login** button.
+
+\subsection{Your Dashboard}
+Once you log in, you will see your **Dashboard**. Think of this as your "Mission Control".
+\begin{enumerate}
+    \item **Top Bar**: Shows your profile and notifications.
+    \item **Side Menu**: Your main navigation (Properties, Tenants, Payments, etc.).
+    \item **Main Area**: 
+    \begin{itemize}
+        \item **KPI Cards**: Total Properties, Active Leases, and Monthly Inflow.
+        \item **Occupancy Matrix**: A pie chart showing occupied vs. available units.
+        \item **Performance Velocity**: A graph tracking your payments and new leases over time.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Managing Your Profile \& Password}
+You can update your personal details and password from the Profile page.
+\begin{enumerate}
+    \item Click on your **Profile Icon** or name in the sidebar/top bar.
+    \item You will see your identity details.
+    \item **To Change Password**: Click the button labeled **Security Override**.
+    \item Enter your current password and your new password.
+    \item Click **Save**.
+\end{enumerate}
+
+\begin{tipbox}
+    Note: You can only update your password \textbf{after logging in}. If you forget your password, please contact an Administrator or Support to reset it for you.
+\end{tipbox}
+
+\section{Managing Your Properties}
+Before you can add tenants, you need to tell the system about your buildings.
+
+\subsection{Step 1: Add a Property}
+1. Click on **Properties** in the side menu.
+2. Click the **+ Add Property** button (usually at the top right).
+3. Fill in the simple form:
+   \begin{itemize}
+       \item **Name**: Give it a nickname (e.g., "Sunrise Apartments").
+       \item **Address**: Where is it located?
+       \item **Number of Floors**: Enter the total number of floors.
+       \item **Has Basement**: Check this box if the building has a basement level.
+   \end{itemize}
+4. Click **Save**.
+
+\subsection{Step 2: Add Units (Locals)}
+The system automatically creates the floors for you based on the number you entered!
+1. Click on the property name you just created.
+2. You will see the list of floors (e.g., Basement, Ground Floor, Floor 1).
+3. Click on a Floor to add a **Local** (Unit).
+   \begin{itemize}
+       \item **Name/Number**: e.g., "Apt 101" or "Shop B".
+       \item **Rent Amount**: How much does this unit cost per month?
+   \end{itemize}
+
+\section{Managing Tenants}
+
+\subsection{Adding a New Tenant}
+1. Click on **Tenants** in the side menu.
+2. Click **Add Tenant**.
+3. Choose functionality: **Individual** (a person) or **Company** (a business).
+4. Enter their **Name**, **Phone**, and **Email**.
+5. Click **Save**.
+
+\subsection{Creating a Lease (Moving them in)}
+Now, connect the Tenant to a Unit.
+1. Go to the **Leases** tab.
+2. Click **New Lease**.
+3. Select the **Tenant** from the list.
+4. Select the **Property** and **Unit** (Local) they are renting.
+5. Set the **Start Date** (when they move in) and **End Date** (optional).
+6. Click **Create Lease**.
+
+\subsection{Modifying or Renewing a Lease}
+Need to extend a lease or change the rent?
+1. In the **Leases** tab, find the tenant.
+2. Click the **Edit Icon** (Paper/Pen).
+3. Update the **Termination Date** to renew, or change the **Status** to 'Inactive' to end the lease.
+4. Click **Save**.
+
+\section{Money Matters}
+
+\subsection{Recording a Rent Payment}
+Since your tenants might pay you in cash, bank transfer, or mobile money, you need to record it here so the system tracks it.
+
+1. Click on **Payments** in the side menu.
+2. Click **Record Payment**.
+3. Select the **Lease** (search by tenant name).
+4. Enter the **Amount Paid**.
+5. Select the **Payment  Mode** (Cash, Transfer, Check).
+6. (Optional) Upload a picture of the receipt or bank slip.
+7. Click **Save**.
+
+The system will automatically update the tenant's balance to show they have paid!
+
+\subsection{Tracking Expenses}
+Did you pay for plumbing repairs or cleaning? Record it!
+1. Click on **Expenses**.
+2. Click **Add Expense**.
+3. Enter the **Amount** and **Description** (e.g., "Fixed broken tap").
+4. Link it to the Property so you know which building is costing you money.
+5. Click **Save**.
+
+\section{Reports \& Analytics}
+You can generate PDF reports for your records.
+\begin{enumerate}
+    \item Go to the **Leases** tab.
+    \item Click the **Generate Analytics** button (top right).
+    \item The system will download a PDF summary of your lease portfolio and status.
+\end{enumerate}
+
+\section{Need Help?}
+If you ever get stuck, send a whatsapp message on 0783165626.
+
+\vspace{1cm}
+\begin{center}
+    \textcolor{brandGray}{\textit{LandlordPro - Making Property Management Simple.}}
+\end{center}
+
+\end{document}

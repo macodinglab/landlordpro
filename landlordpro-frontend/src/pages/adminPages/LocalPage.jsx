@@ -117,7 +117,7 @@ const LocalPage = () => {
 
     setSubmitting(true);
     try {
-      const payload = { ...editData, reference_code: reference_code.trim(), level: level.trim(), size_m2: size_m2 ? Number(size_m2) : null };
+      const payload = { ...editData, reference_code: reference_code.trim(), level: parseInt(level, 10), size_m2: size_m2 ? Number(size_m2) : null };
       if (selectedLocal) {
         await updateLocal(selectedLocal.id, payload);
         showSuccess('Unit parameters recalibrated.');
@@ -493,7 +493,8 @@ const LocalPage = () => {
                   label="Spatial Level (Deck) *"
                   value={editData.level}
                   onChange={(e) => setEditData({ ...editData, level: e.target.value })}
-                  placeholder="e.g. DECK-07"
+                  placeholder="e.g. 0 (Ground), 1 (1st Floor)"
+                  type="number"
                   icon={Layers}
                 />
                 <Input

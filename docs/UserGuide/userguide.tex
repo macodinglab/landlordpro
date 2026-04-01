@@ -1,0 +1,200 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Define Brand Colors
+\definecolor{brandTeal}{HTML}{14b8a6}
+\definecolor{brandGray}{HTML}{0f172a} 
+\definecolor{brandRose}{HTML}{f43f5e}
+\definecolor{codeBg}{HTML}{f1f5f9}
+
+% Geometry setup
+\geometry{
+    left=25mm,
+    right=25mm,
+    top=25mm,
+    bottom=25mm,
+}
+
+% Header and Footer
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textcolor{brandTeal}{LandlordPro User Guide}}
+\rhead{\today}
+\cfoot{\thepage}
+
+% Title Formatting
+\titleformat{\section}
+{\color{brandTeal}\normalfont\Large\bfseries}
+{\thesection}{1em}{}
+
+\titleformat{\subsection}
+{\color{brandGray}\normalfont\large\bfseries}
+{\thesubsection}{1em}{}
+
+\titleformat{\subsubsection}
+{\color{brandGray}\normalfont\normalsize\bfseries}
+{\thesubsubsection}{1em}{}
+
+% Code listing style
+\lstset{
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{codeBg},
+    frame=single,
+    rulecolor=\color{brandTeal},
+    breaklines=true,
+    keywordstyle=\color{brandRose},
+    commentstyle=\color{gray},
+    stringstyle=\color{brandTeal}
+}
+
+% Title Page
+\title{\textcolor{brandTeal}{\textbf{User \& Support Guide}}\\for\\LandlordPro}
+\author{LandlordPro Team}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+Welcome to **LandlordPro**! This guide will help you install, configure, and use the LandlordPro property management system. This system is designed for **Administrators** and **Property Managers** to manage properties, tenants, and finances.
+
+\section{Installation \& Setup}
+
+\subsection{Prerequisites}
+Before you begin, ensure you have the following installed on your system:
+\begin{itemize}
+    \item \textbf{Docker Desktop} (Recommended)
+    \item \textbf{Git} (for cloning the repository)
+\end{itemize}
+
+\subsection{Quick Start (Docker)}
+The easiest way to get LandlordPro up and running is using Docker.
+
+\begin{enumerate}
+    \item \textbf{Clone the Repository}
+    \begin{lstlisting}[language=bash]
+git clone <repository-url>
+cd landlordpro
+    \end{lstlisting}
+
+    \item \textbf{Run the Application}
+    \begin{lstlisting}[language=bash]
+docker-compose up --build
+    \end{lstlisting}
+
+    \item \textbf{Access the App}
+    Open your browser and navigate to:
+    \begin{itemize}
+        \item Frontend: \url{http://localhost}
+        \item API: \url{http://localhost:3000}
+    \end{itemize}
+\end{enumerate}
+
+\section{Getting Started}
+
+\subsection{Registration}
+1. Navigate to the login page (\url{http://localhost}).
+2. Click on "Register".
+3. Fill in your full name, email, and password.
+4. Select your role (**Manager**). Note: Admin accounts are typically pre-seeded or created by an existing Admin.
+
+\subsection{Login}
+1. Enter your registered email and password.
+2. Click "Login".
+3. You will be redirected to your specific dashboard based on your role:
+   \begin{itemize}
+       \item \textbf{Managers} $\rightarrow$ \texttt{/manager/dashboard}
+       \item \textbf{Admins} $\rightarrow$ \texttt{/admin/dashboard}
+   \end{itemize}
+
+\section{Manager Guide}
+As a Manager, your dashboard is your command center for property operations.
+
+\subsection{Dashboard Overview}
+Upon logging in, you will see a summary of:
+\begin{itemize}
+    \item Total Properties managed
+    \item Active Leases
+    \item Occupancy Rate
+    \item Pending Actions (e.g., leases expiring soon)
+\end{itemize}
+
+\subsection{Managing Properties \& Units}
+The system uses a hierarchical structure: \textbf{Property} $\rightarrow$ \textbf{Floors} $\rightarrow$ \textbf{Locals} (Units).
+
+\begin{enumerate}
+    \item Navigate to the **Properties** tab.
+    \item Click "Add Property" to define a new building.
+    \item **Floors \& Basement**: Enter the number of floors and check "Has Basement" if applicable. The system will \textbf{automatically create} these floors for you.
+    \item Select the property to **view** the created floors.
+    \item Select a floor to add **Locals** (specific rentable units).
+\end{enumerate}
+
+\subsection{Tenant Management}
+Since tenants do not log in, you must manage their data.
+\begin{enumerate}
+    \item Go to the **Tenants** tab.
+    \item Click "Add Tenant".
+    \item Enter details (Name, ID/TIN, Phone, Email).
+    \item Assign them to a specific lease using the **Leases** tab.
+\end{enumerate}
+
+\subsection{Financials: Payments \& Expenses}
+\subsubsection{Recording Payments}
+When a tenant pays rent (Cash, Bank Transfer, etc.):
+1. Navigate to **Payments**.
+2. Click "Record Payment".
+3. Select the Tenant and Lease.
+4. Enter the Amount and Date.
+5. Save. The system will update the lease balance.
+
+\subsubsection{Tracking Expenses}
+1. Navigate to **Expenses**.
+2. Log costs such as repairs, cleaning, or utilities.
+3. Link the expense to a specific property for accurate reporting.
+
+\section{Administrator Guide}
+Admins have a global view of the system components.
+
+\subsection{User Management}
+*   **Create/Manage Users**: View all registered managers. You can activate or deactivate accounts.
+*   **Role Assignment**: Ensure users have the correct permissions (Admin vs Manager).
+
+\subsection{System Configuration}
+*   **Payment Modes**: Configure accepted payment types (e.g., "Cash", "Check", "Wire Transfer") via the Settings page.
+*   **Global Reports**: View aggregated financial data across all properties and managers.
+
+\section{Troubleshooting}
+
+\subsection{Common Issues}
+
+\textbf{Issue}: "Connection Refused"
+\textbf{Solution}: Ensure Docker containers are running. Run:
+\begin{lstlisting}[language=bash]
+docker-compose ps
+\end{lstlisting}
+
+\textbf{Issue}: Forgot Password
+\textbf{Solution}: Password resets are currently handled ensuring security. Please contact an Administrator to reset your credentials. Self-service password updates are only available via the Profile page \textbf{after} logging in.
+
+\subsection{Support}
+For technical support, please verify logs:
+\begin{lstlisting}[language=bash]
+docker-compose logs -f backend
+\end{lstlisting}
+Or contact the development team.
+
+\end{document}

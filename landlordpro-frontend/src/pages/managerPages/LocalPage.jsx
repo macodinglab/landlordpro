@@ -28,7 +28,7 @@ const LocalPage = () => {
   const [locals, setLocals] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedLocal, setSelectedLocal] = useState(null);
-  const [editData, setEditData] = useState({ reference_code: '', status: 'available', size_m2: '', property_id: '' });
+  const [editData, setEditData] = useState({ reference_code: '', status: 'available', size_m2: '', property_id: '', level: '' });
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -100,23 +100,26 @@ const LocalPage = () => {
       reference_code: local.reference_code,
       status: local.status,
       size_m2: local.size_m2,
-      property_id: local.property_id
+      size_m2: local.size_m2,
+      property_id: local.property_id,
+      level: local.level
     });
     setModalOpen(true);
   };
 
   const handleSubmit = async () => {
-    if (!editData.reference_code?.trim() || !editData.property_id) {
-      showError('Reference identifier and parent asset are required.');
+    if (!editData.reference_code?.trim() || !editData.property_id || editData.level === undefined || editData.level === '') {
+      showError('Reference identifier, parent asset, and level are required.');
       return;
     }
 
     try {
+      const payload = { ...editData, level: parseInt(editData.level, 10) };
       if (selectedLocal) {
-        await updateLocal(selectedLocal.id, editData);
+        await updateLocal(selectedLocal.id, payload);
         showSuccess('Unit node updated.');
       } else {
-        await createLocal(editData);
+        await createLocal(payload);
         showSuccess('New unit node provisioned.');
       }
       setModalOpen(false);
@@ -188,7 +191,7 @@ const LocalPage = () => {
               className="flex items-center gap-3 bg-teal-600 hover:bg-teal-500 text-white shadow-2xl px-8 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest italic transition-all active:scale-95 transition-transform"
               onClick={() => {
                 setSelectedLocal(null);
-                setEditData({ reference_code: '', status: 'available', size_m2: '', property_id: selectedPropertyId || '' });
+                setEditData({ reference_code: '', status: 'available', size_m2: '', property_id: selectedPropertyId || '', level: '' });
                 setModalOpen(true);
               }}
             >
@@ -463,6 +466,15 @@ const LocalPage = () => {
                 type="number"
                 value={editData.size_m2}
                 onChange={(e) => setEditData({ ...editData, size_m2: e.target.value })}
+                className="bg-gray-900 border-gray-700 text-white placeholder-gray-600 font-black italic uppercase text-xs"
+              />
+
+              <Input
+                label="Spatial Level (Deck) *"
+                placeholder="e.g. 0 (Ground), 1 (1st Floor)"
+                type="number"
+                value={editData.level}
+                onChange={(e) => setEditData({ ...editData, level: e.target.value })}
                 className="bg-gray-900 border-gray-700 text-white placeholder-gray-600 font-black italic uppercase text-xs"
               />
 

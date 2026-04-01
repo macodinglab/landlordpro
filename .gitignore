@@ -89,3 +89,10 @@ yarn-error.log*
 
 # ==================
 env_backend
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz

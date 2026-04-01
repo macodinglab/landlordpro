@@ -1,0 +1,166 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{xcolor}
+
+% Define Brand Colors
+\definecolor{brandTeal}{HTML}{14b8a6}
+\definecolor{brandGray}{HTML}{0f172a}
+\definecolor{brandRose}{HTML}{f43f5e}
+
+% Geometry setup
+\geometry{
+    left=25mm,
+    right=25mm,
+    top=25mm,
+    bottom=25mm,
+}
+
+% Header and Footer
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textcolor{brandTeal}{\textbf{LandlordPro SRS}}}
+\rhead{\today}
+\cfoot{\thepage}
+
+% Title Formatting
+\titleformat{\section}
+{\color{brandTeal}\normalfont\Large\bfseries}
+{\thesection}{1em}{}
+
+\titleformat{\subsection}
+{\color{brandGray}\normalfont\large\bfseries}
+{\thesubsection}{1em}{}
+
+% Title Page
+\title{\textcolor{brandTeal}{\textbf{Software Requirements Specification}}\\for\\LandlordPro}
+\author{LandlordPro Team}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+\subsection{Purpose}
+The purpose of this Software Requirements Specification (SRS) is to describe the functional and non-functional requirements for the \textbf{LandlordPro} property management system. This document is intended for the development team, stakeholders, and quality assurance testers to understand the system's scope and functionality.
+
+\subsection{Scope}
+LandlordPro is a full-stack web application designed to empower property managers and administrators to efficiently manage real estate assets. The system provides tools for:
+\begin{itemize}
+    \item Managing properties, floors, and specific locals (units).
+    \item Tracking tenant information and lease agreements.
+    \item Recording and monitoring rent payments and property expenses.
+    \item Generating reports for financial and operational insights.
+    \item Providing role-based access for Admins and Managers.
+\end{itemize}
+
+\subsection{Definitions and Acronyms}
+\begin{itemize}
+    \item \textbf{SRS}: Software Requirements Specification
+    \item \textbf{JWT}: JSON Web Token (used for secure authentication)
+    \item \textbf{Local}: A specific unit within a property (e.g., Apartment 101, Shop B).
+    \item \textbf{Manager}: A user responsible for managing assigned properties.
+\end{itemize}
+
+\section{Overall Description}
+
+\subsection{Product Perspective}
+LandlordPro is a standalone web-based system consisting of:
+\begin{itemize}
+    \item A **Frontend** application built with React, Vite, and TailwindCSS (v4).
+    \item A **Backend** REST API built with Node.js, Express, and Sequelize.
+    \item A **Database** layer using PostgreSQL.
+\end{itemize}
+
+\subsection{User Classes and Characteristics}
+\begin{enumerate}
+    \item \textbf{Admin}: Superuser with full system access. Can manage all users (including Managers), properties, settings, and view system-wide reports.
+    \item \textbf{Manager}: Property Manager responsible for specific properties. Can manage leases, tenants, payments, and expenses for their assigned properties.
+    \item \textbf{Tenant (Non-System User)}: Tenants do not log in. They are entities managed by the system (profiles, lease data, payment history).
+\end{enumerate}
+
+\subsection{Operating Environment}
+\begin{itemize}
+    \item \textbf{Client Side}: Modern web browsers (Chrome, Firefox, Safari, Edge).
+    \item \textbf{Server Side}: Docker environment supporting Node.js and PostgreSQL.
+\end{itemize}
+
+\section{System Features}
+
+\subsection{Authentication \& Authorization}
+\textbf{Description}: Secure user access control.
+\begin{itemize}
+    \item Users (Admins and Managers) shall be able to login securely.
+    \item The system shall use JWT for session management.
+    \item Access to routes shall be restricted based on roles (\texttt{/admin/*} vs \texttt{/manager/*}).
+\end{itemize}
+
+\subsection{Property Structure Management}
+\textbf{Description}: Hierarchical management of assets.
+\begin{itemize}
+    \item \textbf{Properties}: Top-level assets created with a defined number of floors and optional basement.
+    \item \textbf{Auto-Generation}: The system automatically generates the Ground Floor, subsequent floors, and a Basement (if selected) upon property creation.
+    \item \textbf{Locals}: Individual rentable units on floors.
+    \item Managers shall be able to navigate this hierarchy to manage specific units.
+\end{itemize}
+
+\subsection{Tenant \& Lease Management}
+\textbf{Description}: Managing relationships.
+\begin{itemize}
+    \item Managers shall be able to register new tenants (Individuals or Companies).
+    \item The system shall track lease agreements (Start Date, End Date, Rent Amount).
+    \item The system shall handle lease renewals and terminations.
+\end{itemize}
+
+\subsection{Financial Management}
+\textbf{Description}: Tracking cash flow.
+\begin{itemize}
+    \item \textbf{Payments}: Managers shall record rent payments received from tenants.
+    \item \textbf{Expenses}: Managers shall log property-related expenses (maintenance, utilities).
+    \item \textbf{Payment Modes}: Admins can configure accepted payment methods.
+\end{itemize}
+
+\subsection{Reporting}
+\textbf{Description}: Business intelligence.
+\begin{itemize}
+    \item The system shall generate reports on income, expenses, and occupancy rates.
+    \item Documents and contracts can be managed within the system.
+\end{itemize}
+
+\section{External Interface Requirements}
+
+\subsection{User Interface Design}
+The system features a modern, clean aesthetics using a **Teal** and **Gray** color palette.
+\begin{itemize}
+    \item \textbf{Primary Color}: Teal (\texttt{\#14b8a6}) - Used for actions, highlights, and active states.
+    \item \textbf{Secondary Color}: Gray/Slate (\texttt{\#0f172a}) - Used for text, sidebars, and structural elements.
+    \item \textbf{Error Color}: Rose (\texttt{\#f43f5e}) - Used for alerts and form errors.
+    \item \textbf{Dark Mode}: Fully supported with dark gray backgrounds and adjusted contrast.
+\end{itemize}
+
+\section{Non-Functional Requirements}
+
+\subsection{Security}
+\begin{itemize}
+    \item Passwords must be hashed using Bcrypt.
+    \item Role-based middleware must protect all API endpoints.
+\end{itemize}
+
+\subsection{Performance}
+\begin{itemize}
+    \item Dashboard data retrieval should be optimized with database indexing.
+    \item The frontend should use code-splitting (Vite) for fast initial load.
+\end{itemize}
+
+\end{document}
